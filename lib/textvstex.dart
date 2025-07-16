@@ -166,52 +166,78 @@ void compareTegOnly() {
 //     SnackBar(content: Text("تم نسخ $title بصيغة Excel")),
 //   );
 // }
+// void copyColumnAsExcel(List<dynamic> rows, String title) {
+//   final buffer = StringBuffer();
+
+//   for (final row in rows) {
+//     final line = row.toString().trim();
+//     final parts = line.split(RegExp(r'\s+'));
+
+//     if (parts.isEmpty) continue;
+
+//     String core = '';
+//     String agg = '';
+//     String gig = '';
+
+//     if (parts.length == 1) {
+//       core = parts[0];
+//     } else if (parts.length == 2) {
+//       core = parts[0];
+//       gig = parts[1];
+//     } else {
+//       core = parts.first;
+//       gig = parts.last;
+//       agg = parts.sublist(1, parts.length - 1).join(' ');
+//     }
+
+//     // تابع يعطي أولوية المقاطع
+//     int getPriority(String text) {
+//       text = text.toLowerCase();
+//       if (text.contains('pe')) return 1;
+//       if (text.contains('obr')) return 2;
+//       if (text.contains('oct')) return 3;
+//       if (text.contains('obo')) return 4;
+//       if (text.contains('hos')) return 5;
+
+//       return 999;
+//     }
+
+//     final corePriority = getPriority(core);
+//     final aggPriority = getPriority(agg);
+
+//     if (aggPriority < corePriority) {
+//       final temp = core;
+//       core = agg;
+//       agg = temp;
+//     }
+
+//     buffer.writeln('$core\t$agg\t$gig');
+//   }
+
+//   final temp = html.TextAreaElement();
+//   temp.value = buffer.toString();
+//   html.document.body!.append(temp);
+//   temp.select();
+//   html.document.execCommand('copy');
+//   temp.remove();
+
+//   ScaffoldMessenger.of(context).showSnackBar(
+//     SnackBar(content: Text("تم نسخ $title بصيغة Excel (text-to-columns)")),
+//   );
+// }
 void copyColumnAsExcel(List<dynamic> rows, String title) {
   final buffer = StringBuffer();
 
   for (final row in rows) {
     final line = row.toString().trim();
+
+    if (line.isEmpty) continue;
+
+    // تقسيم السطر إلى كلمات بناءً على المسافات
     final parts = line.split(RegExp(r'\s+'));
 
-    if (parts.isEmpty) continue;
-
-    String core = '';
-    String agg = '';
-    String gig = '';
-
-    if (parts.length == 1) {
-      core = parts[0];
-    } else if (parts.length == 2) {
-      core = parts[0];
-      gig = parts[1];
-    } else {
-      core = parts.first;
-      gig = parts.last;
-      agg = parts.sublist(1, parts.length - 1).join(' ');
-    }
-
-    // تابع يعطي أولوية المقاطع
-    int getPriority(String text) {
-      text = text.toLowerCase();
-      if (text.contains('pe')) return 1;
-      if (text.contains('obr')) return 2;
-      if (text.contains('oct')) return 3;
-      if (text.contains('obo')) return 4;
-      if (text.contains('hos')) return 5;
-
-      return 999;
-    }
-
-    final corePriority = getPriority(core);
-    final aggPriority = getPriority(agg);
-
-    if (aggPriority < corePriority) {
-      final temp = core;
-      core = agg;
-      agg = temp;
-    }
-
-    buffer.writeln('$core\t$agg\t$gig');
+    // كتابة كل جزء في عمود مستقل (مفصول بـ tab)
+    buffer.writeln(parts.join('\t'));
   }
 
   final temp = html.TextAreaElement();
