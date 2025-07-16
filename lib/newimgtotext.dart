@@ -129,7 +129,7 @@ void compareTexts() {
     final canvas = html.CanvasElement(width: image.width, height: image.height);
     final ctx = canvas.context2D;
 
-    const scale = 2;
+    const scale = 3;
     canvas.width = image.width! * scale;
     canvas.height = image.height! * scale;
     ctx.scale(scale.toDouble(), scale.toDouble());
