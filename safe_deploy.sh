@@ -52,6 +52,11 @@ echo "🌍 https://$GITHUB_USERNAME.github.io/$REPO_NAME/"
 #./safe_deploy.sh
 
 
+
+#press as u upload and commit using vsc it will get ur main branch automatically
+#git push origin main --force
+
+
 #git checkout main
 
 
