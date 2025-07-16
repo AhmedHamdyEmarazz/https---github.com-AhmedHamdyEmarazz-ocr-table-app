@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <base href="/ocr-table-app2/">
+    <meta charset="UTF-8" />
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+    <meta name="description" content="OCR Table App" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Flutter web app manifest -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    <title>OCR Table App</title>
+
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+
+    <!-- Flutter JS (bootstrapped automatically) -->
+    <script src="flutter.js" defer></script>
+  </head>
+
+  <body>
+    <script>
+      window.addEventListener('load', function () {
+        if (window._flutter && _flutter.loader) {
+          _flutter.loader.loadEntrypoint({
+            onEntrypointLoaded: function (engineInitializer) {
+              engineInitializer.initializeEngine().then(function (appRunner) {
+                appRunner.runApp();
+              });
+            }
+          });
+        } else {
+          console.error("Flutter loader not found. Make sure 'flutter.js' is loaded correctly.");
+        }
+      });
+    </script>
+  </body>
+</html>
