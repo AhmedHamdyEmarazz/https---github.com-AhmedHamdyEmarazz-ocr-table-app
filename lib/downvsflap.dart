@@ -101,7 +101,8 @@ String normalizeLine(String line) {
 //   return null; // لا يوجد TEG..number..port
 // }
 String? _extractGigNum(String line) {
-  final pattern = RegExp(r'\b(TEG?)[^\dA-Z]*(\w+)[^p]*port', caseSensitive: false);
+  // final pattern = RegExp(r'\b(TEG?)[^\dA-Z]*(\w+)[^p]*port', caseSensitive: false);
+  final pattern = RegExp(r'(TEG?)[^\dA-Z]*(\w+)[^p]*port', caseSensitive: false);
   final match = pattern.firstMatch(line);
 
   if (match != null) {
@@ -433,6 +434,25 @@ Widget build(BuildContext context) {
               ),
             ],
           ),
+          // ✅ جدول الرأس الثابت فوق الصور
+Table(
+  border: TableBorder.all(),
+  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+  children: const [
+    TableRow(
+      decoration: BoxDecoration(color: Color(0xFFE0E0E0)),
+      children: [
+        Padding(padding: EdgeInsets.all(6), child: Text("Site name", textAlign: TextAlign.center)),
+        Padding(padding: EdgeInsets.all(6), child: Text("Additional text", textAlign: TextAlign.center)),
+        Padding(padding: EdgeInsets.all(6), child: Text("Object name", textAlign: TextAlign.center)),
+        Padding(padding: EdgeInsets.all(6), child: Text("Severity", textAlign: TextAlign.center)),
+        Padding(padding: EdgeInsets.all(6), child: Text("Last time detected", textAlign: TextAlign.center)),
+        Padding(padding: EdgeInsets.all(6), child: Text("Object type", textAlign: TextAlign.center)),
+      ],
+    ),
+  ],
+),
+const SizedBox(height: 10),
           const SizedBox(height: 10),
      //  if (isLoading)   Text("عدد النصوص: ${extractedTexts.length}"),
 
@@ -443,37 +463,54 @@ Widget build(BuildContext context) {
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
     itemCount: images.length,
-    itemBuilder: (context, index) {
-      return Card(
-       
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            Image.network(images[index]),
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.red),
-                                onPressed: () => removeImage(index),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: SelectableText(
-                            extractedTexts[index],
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+   itemBuilder: (context, index) {
+  return Card(
+    margin: const EdgeInsets.symmetric(vertical: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ✅ جدول ثابت فوق الصورة
+        Table(
+          border: TableBorder.all(),
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: const [
+            TableRow(
+              decoration: BoxDecoration(color: Color(0xFFE0E0E0)),
+              children: [
+                Padding(padding: EdgeInsets.all(6), child: Text("Site name", textAlign: TextAlign.center)),
+                Padding(padding: EdgeInsets.all(6), child: Text("Additional text", textAlign: TextAlign.center)),
+                Padding(padding: EdgeInsets.all(6), child: Text("Object name", textAlign: TextAlign.center)),
+                Padding(padding: EdgeInsets.all(6), child: Text("Severity", textAlign: TextAlign.center)),
+                Padding(padding: EdgeInsets.all(6), child: Text("Last time detected", textAlign: TextAlign.center)),
+                Padding(padding: EdgeInsets.all(6), child: Text("Object type", textAlign: TextAlign.center)),
+              ],
+            ),
+          ],
+        ),
+        Stack(
+          children: [
+            Image.network(images[index]),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.red),
+                onPressed: () => removeImage(index),
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SelectableText(
+            extractedTexts[index],
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+      ],
+    ),
+  );
+},
               ),
             
           const SizedBox(height: 10),
