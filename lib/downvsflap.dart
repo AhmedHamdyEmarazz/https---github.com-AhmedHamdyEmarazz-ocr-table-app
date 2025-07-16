@@ -30,6 +30,11 @@ class _DownVsFlapState extends State<DownVsFlap> with AutomaticKeepAliveClientMi
   List<String> extractedTexts = [];
   bool isLoading = false;
 String _extractCore(String line) {
+  line = line.replaceAll('CAL_', 'CAI_');
+   line = line.replaceAllMapped(RegExp(r'CA[Ll](\d)'), (match) {
+    line = line.replaceAll('CAL_', 'CAI_');
+    return 'CAI_${match.group(1)}';
+  });
   final start = line.indexOf('=');
   if (start == -1) return '...';
 
@@ -73,20 +78,33 @@ String _extractCore(String line) {
 //   return '...';
 // }
 
-String normalizeLine(String line) {
+// String normalizeLine(String line) {
+//  fixCALtoCAI(line);
+//   print('xxxx');
+//   return line
+//       .replaceAll('S', '5')
+//       .replaceAll('s', '5')
+//       .replaceAll('O', '0')
+//       .replaceAll('o', '0')
+//       .replaceAll('I', '1')
+//       .replaceAll('l', '1')
+//             .replaceAll('b', '6')
+//       .replaceAll('g', '9')
+
+//             .replaceAll('B', '8');
+            
+
+// }
+// String fixOCR_I_to_L(String text) {
+//   return text.replaceAllMapped(RegExp(r'\bCA[Ll](\d)', caseSensitive: false), (match) {
+//     return 'CAI${match.group(1)}';
+//   });
+// }
+ String fixCALtoCAI(String text) {
   print('xxxx');
-  return line
-      .replaceAll('S', '5')
-      .replaceAll('s', '5')
-      .replaceAll('O', '0')
-      .replaceAll('o', '0')
-      .replaceAll('I', '1')
-      .replaceAll('l', '1')
-            .replaceAll('b', '6')
-      .replaceAll('g', '9')
-
-            .replaceAll('B', '8');
-
+  return text.replaceAllMapped(RegExp(r'\bCA[Ll](\d)', caseSensitive: false), (match) {
+    return 'CAI${match.group(1)}';
+  });
 }
 // String? _extractGigNum(String line) {
 //   final pattern = RegExp(r'\b(TEG?)[^\d]*(\d+)[^p]*port', caseSensitive: false);
@@ -321,12 +339,16 @@ String removePortSuffix(String text) {
   }
  List<TableRow> _buildTableRowsBySuffix(List<String> suffixes) {
   print('تشغيل جدول بـ suffixes: $suffixes');
+  
   final List<TableRow> rows = [];
   final Set<String> seenGigNums = {}; // لتخزين قيم Gig المكررة
 
   for (final text in extractedTexts) {
     final lines = text.split('\n');
+    
     for (final line in lines) {
+       
+
       final lowerLine = line.trim().toLowerCase();
       if (suffixes.any((suffix) => lowerLine.contains(suffix))) {
         final aggregator = _extractAggregator(line);
@@ -383,6 +405,12 @@ rows.add(
 }
 
 String _extractAggregator(String line) {
+   line = line.replaceAll('CAL_', 'CAI_');
+   line = line.replaceAllMapped(RegExp(r'CA[Ll](\d)'), (match) {
+    line = line.replaceAll('CAL_', 'CAI_');
+    return 'CAI_${match.group(1)}';
+  });
+
   final lowerLine = line.toLowerCase();
   final index = lowerLine.indexOf('physical');
 

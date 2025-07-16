@@ -310,7 +310,7 @@ void copyAsExcelTable(List<dynamic> list1, List<dynamic> list2, List<dynamic> li
   Widget build(BuildContext context) {
     super.build(context); // needed for AutomaticKeepAliveClientMixin
     return Scaffold(
-      appBar: AppBar(title: const Text(" vsمقارنة نصوص يدوية")), 
+      appBar: AppBar(title: const Text(" مقارنة نصوص يدوية")), 
       body: Padding(
         padding: const EdgeInsets.all(10),
         child: Column(
