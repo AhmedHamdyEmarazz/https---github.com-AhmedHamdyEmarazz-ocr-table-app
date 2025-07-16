@@ -241,7 +241,7 @@ String removePortSuffix(String text) {
     final ctx = canvas.context2D;
     
     // تكبير الصورة للحصول على دقة أعلى
-    final scale = 2;  // يمكنك تعديل هذه القيمة
+    final scale = 3;  // يمكنك تعديل هذه القيمة
     canvas.width = image.width! * scale;
     canvas.height = image.height! * scale;
     ctx.scale(scale.toDouble(), scale.toDouble());
