@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:js/js.dart';
 import 'package:js/js_util.dart';
 import 'package:flutter/services.dart';
-
+import 'dart:js_util';
 
 @JS('Tesseract')
 external TesseractJS get tesseract;
+
+@JS('readImageFromClipboard')
+external dynamic _readImageFromClipboard();
 
 @JS()
 @anonymous
@@ -323,6 +326,25 @@ String removePortSuffix(String text) {
   return '...';
 }
 
+
+Future<void> pasteImageFromClipboard() async {
+  setState(() => isLoading = true);
+
+  final jsResult = await promiseToFuture(_readImageFromClipboard());
+  if (jsResult != null && jsResult is String && jsResult.startsWith('data:image/')) {
+    final imageUrl = jsResult;
+    images.add(imageUrl);
+    extractedTexts.add("جاري التحليل...");
+    final idx = images.length - 1;
+    await processImage(imageUrl, idx);
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("لم يتم العثور على صورة في الحافظة")),
+    );
+  }
+
+  setState(() => isLoading = false);
+}
   void removeImage(int index) {
     setState(() {
       images.removeAt(index);
@@ -373,7 +395,7 @@ final aggLower = aggregator.toLowerCase();
 if (aggLower.contains('pe')) {
   finalAgg = core;
   finalCore = aggregator;
-} else if (aggLower.contains('obr') || aggLower.contains('oct') || aggLower.contains('hos') || aggLower.contains('obo') ) {
+} else if (aggLower.contains('obr') || aggLower.contains('oct') || aggLower.contains('hos') || aggLower.contains('obo') || aggLower.contains('saw') || aggLower.contains('awa') || aggLower.contains('smh') || aggLower.contains('smo') ) {
   finalAgg = core;
   finalCore = aggregator;
 }
@@ -454,6 +476,10 @@ Widget build(BuildContext context) {
                 onPressed: pickImages,
                 child: const Text("اختيار صور"),
               ),
+              ElevatedButton(
+  onPressed: pasteImageFromClipboard,
+  child: const Text("لصق صورة"),
+),
               const SizedBox(width: 10),
               ElevatedButton(
                 onPressed: clearAll,

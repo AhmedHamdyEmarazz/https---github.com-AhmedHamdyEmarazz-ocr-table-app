@@ -36,5 +36,27 @@
         }
       });
     </script>
+    <script>
+      async function readImageFromClipboard() {
+        try {
+          const items = await navigator.clipboard.read();
+          for (const item of items) {
+            for (const type of item.types) {
+              if (type.startsWith("image/")) {
+                const blob = await item.getType(type);
+                return await new Promise((resolve) => {
+                  const reader = new FileReader();
+                  reader.onload = () => resolve(reader.result);
+                  reader.readAsDataURL(blob);
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Clipboard read error:", e);
+          return null;
+        }
+      }
+    </script>
   </body>
 </html>
