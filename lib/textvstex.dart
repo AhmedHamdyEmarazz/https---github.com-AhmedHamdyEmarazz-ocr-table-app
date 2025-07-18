@@ -48,14 +48,15 @@ class _ManualTextCompareState extends State<ManualTextCompare> with AutomaticKee
 }
 
 void compareTegOnly() {
-  final regex = RegExp(r'TEG\d+', caseSensitive: false);
+final teGig = RegExp(r'\b(TEG|TE)\d+\b', caseSensitive: false);
 
+bool isGig(String line) => teGig.hasMatch(line.trim());
   Map<String, String> extractTegMap(String text) {
     final lines = text.split('\n');
     final map = <String, String>{};
 
     for (var line in lines) {
-      final match = regex.firstMatch(line);
+      final match = teGig.firstMatch(line);
       if (match != null) {
         final teg = match.group(0)!;
         map[teg] = line.trim(); // احتفظ بالنص الكامل
@@ -110,49 +111,119 @@ void compareTegOnly() {
     html.document.execCommand('copy');
     temp.remove();
   }
-//   void copyColumnAsExcel(List<dynamic> rows, String title) {
+void copyColumnAsExcel(List<dynamic> rows, String title) {
+  final buffer = StringBuffer();
+
+  /// يُرجِع أولوية المقطع (كلما كان الرقم أصغر كان المقطع أَوْلَى)
+  int priority(String text) {
+    final t = text.toLowerCase();
+    if (t.contains('pe'))  return 1;
+    if (t.contains('obr')) return 2;
+    if (t.contains('oct')) return 3;
+    if (t.contains('obo')) return 4;
+    if (t.contains('hos')) return 5;
+    if (t.contains('awa')) return 6;
+    if (t.contains('saw')) return 7;
+    if (t.contains('smh')) return 8;
+    if (t.contains('smo')) return 9;
+    return 999;
+  }
+
+  final teGig = RegExp(r'^(TEG|TE)\d+$');  // يقبل TEG123 أو TE123 فقط (حروف كبيرة)   
+  final whitespace = RegExp(r'\s+');            // أى عدد من الفراغات / التابات
+
+  for (final row in rows) {
+    final parts = row.toString().trim().split(whitespace).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) continue;
+
+    // -------- 1) حدّد gig (أول مقطع يُطابق TE\d+)
+    String gig  = '';
+    int gigIdx  = -1;
+    for (var i = 0; i < parts.length; i++) {
+      if (teGig.hasMatch(parts[i])) {
+        gig = parts[i];
+        gigIdx = i;
+        break;
+      }
+    }
+    if (gigIdx != -1) parts.removeAt(gigIdx); // أزل gig من القائمة الأصليّة
+
+    // -------- 2) حدّد core و aggregator
+    String core = parts.isNotEmpty ? parts.first : '';
+    List<String> aggTokens = parts.length > 1 ? parts.sublist(1) : [];
+
+    // تبادل core و aggregator بحسب الأولوية
+    if (priority(aggTokens.join(' ')) < priority(core)) {
+      final tmp       = core;
+      core            = aggTokens.join(' ');
+      aggTokens       = [tmp];
+    }
+
+    // -------- 3) صفّ الأعمدة بالترتيب: Core | Agg‑tokens (كل مقطع فى عمود) | Gig
+    final excelCols = <String>[core, ...aggTokens, gig];
+    buffer.writeln(excelCols.join('\t'));
+  }
+
+  // -------- 4) نسخ إلى الحافظة
+  final temp = html.TextAreaElement()..value = buffer.toString();
+  html.document.body!.append(temp);
+  temp.select();
+  html.document.execCommand('copy');
+  temp.remove();
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("تم نسخ $title بصيغة Excel (Text‑to‑Columns)")),
+  );
+}
+// void copyColumnAsExcel(List<dynamic> rows, String title) {
 //   final buffer = StringBuffer();
-//   const keywords = ['pe', 'obr', 'oct', 'obo', 'hos'];
 
-//   int getPriority(String text) {
-//     final lower = text.toLowerCase();
-//     for (int i = 0; i < keywords.length; i++) {
-//       if (lower.contains(keywords[i])) return i;
-//     }
-//     return 100; // قيمة كبيرة تعني "بدون أولوية"
-//   }
-
-//   for (var row in rows) {
-//     final line = row.toString();
+//   for (final row in rows) {
+//     final line = row.toString().trim();
 //     final parts = line.split(RegExp(r'\s+'));
 
-//     if (parts.length < 2) {
-//       buffer.writeln('$line\t\t');
-//       continue;
+//     if (parts.isEmpty) continue;
+
+//     String core = '';
+//     String agg = '';
+//     String gig = '';
+
+//     if (parts.length == 1) {
+//       core = parts[0];
+//     } else if (parts.length == 2) {
+//       core = parts[0];
+//       gig = parts[1];
+//     } else {
+//       core = parts.first;
+//       gig = parts.last;
+//       agg = parts.sublist(1, parts.length - 1).join(' ');
 //     }
 
-//     int firstSpace = line.indexOf(' ');
-//     int secondSpace = line.indexOf(' ', firstSpace + 1);
-
-//     if (firstSpace == -1 || secondSpace == -1) {
-//       buffer.writeln('$line\t\t');
-//       continue;
+//     // تابع يعطي أولوية المقاطع
+//     int getPriority(String text) {
+//       text = text.toLowerCase();
+//       if (text.contains('pe')) return 1;
+//       if (text.contains('obr')) return 2;
+//       if (text.contains('oct')) return 3;
+//       if (text.contains('obo')) return 4;
+//       if (text.contains('hos')) return 5;
+//       if (text.contains('saw')) return 6;
+//        if (text.contains('smh')) return 7;
+//         if (text.contains('smo')) return 8;
+//          if (text.contains('awa')) return 5;
+//       return 999;
 //     }
 
-//     String part1 = line.substring(0, firstSpace).trim();
-//     String part2 = line.substring(firstSpace + 1, secondSpace).trim();
-//     String part3 = line.substring(secondSpace + 1).trim();
+//     final corePriority = getPriority(core);
+//     final aggPriority = getPriority(agg);
 
-//     int p1 = getPriority(part1);
-//     int p2 = getPriority(part2);
-
-//     if (p2 < p1) {
-//       final temp = part1;
-//       part1 = part2;
-//       part2 = temp;
+//     if (aggPriority < corePriority) {
+//       final temp = core;
+//       core = agg;
+//       agg = temp;
 //     }
 
-//     buffer.writeln('$part1\t$part2\t$part3');
+//     buffer.writeln('$core\t$agg\t$gig');
 //   }
 
 //   final temp = html.TextAreaElement();
@@ -163,58 +234,78 @@ void compareTegOnly() {
 //   temp.remove();
 
 //   ScaffoldMessenger.of(context).showSnackBar(
-//     SnackBar(content: Text("تم نسخ $title بصيغة Excel")),
+//     SnackBar(content: Text("تم نسخ $title بصيغة Excel (text-to-columns)")),
 //   );
 // }
-void copyColumnAsExcel(List<dynamic> rows, String title) {
-  final buffer = StringBuffer();
+// void copyColumnAsExcel(List<dynamic> rows, String title) {
+//   final buffer = StringBuffer();
 
-  for (final row in rows) {
-    final line = row.toString().trim();
-    final parts = line.split(RegExp(r'\s+'));
-
-    if (parts.isEmpty) continue;
-    // كتابة كل جزء في عمود مستقل (مفصول بـ tab)
-    //buffer.writeln(parts.join('\t'));
-  
-
-  final temp = html.TextAreaElement();
-  temp.value = buffer.toString();
-  html.document.body!.append(temp);
-  temp.select();
-  html.document.execCommand('copy');
-  temp.remove();
-    String core = '';
-    String agg = '';
-    String gig = '';
-
-    if (parts.length == 1) {
-      core = parts[0];
-    } else if (parts.length == 2) {
-      core = parts[0];
-      gig = parts[1];
-    } else {
-      core = parts.first;
-      gig = parts.last;
-      agg = parts.sublist(1, parts.length - 1).join(' ');
-    }
-
-    // تابع يعطي أولوية المقاطع
-    int getPriority(String text) {
-      text = text.toLowerCase();
-      if (text.contains('pe')) return 1;
-      if (text.contains('obr')) return 2;
-      if (text.contains('oct')) return 3;
-      if (text.contains('obo')) return 4;
-      if (text.contains('hos')) return 5;
-
-      return 999;
-    }
-//     // تقسيم السطر إلى كلمات بناءً على المسافات
+//   for (final row in rows) {
+//     final line = row.toString().trim();
 //     final parts = line.split(RegExp(r'\s+'));
 
+//     if (parts.isEmpty) continue;
 //     // كتابة كل جزء في عمود مستقل (مفصول بـ tab)
-//     buffer.writeln(parts.join('\t'));
+//     //buffer.writeln(parts.join('\t'));
+  
+
+//   final temp = html.TextAreaElement();
+//   temp.value = buffer.toString();
+//   html.document.body!.append(temp);
+//   temp.select();
+//   html.document.execCommand('copy');
+//   temp.remove();
+//     String core = '';
+//     String agg = '';
+//     String gig = '';
+
+//     if (parts.length == 1) {
+//       core = parts[0];
+//     } else if (parts.length == 2) {
+//       core = parts[0];
+//       gig = parts[1];
+//     } else {
+//       core = parts.first;
+//       gig = parts.last;
+//       agg = parts.sublist(1, parts.length - 1).join(' ');
+//     }
+
+//     // تابع يعطي أولوية المقاطع
+//     int getPriority(String text) {
+//       text = text.toLowerCase();
+//       if (text.contains('pe')) return 1;
+//       if (text.contains('obr')) return 2;
+//       if (text.contains('oct')) return 3;
+//       if (text.contains('obo')) return 4;
+//       if (text.contains('hos')) return 5;
+
+//       return 999;
+//     }
+// //     // تقسيم السطر إلى كلمات بناءً على المسافات
+// //     final parts = line.split(RegExp(r'\s+'));
+
+// //     // كتابة كل جزء في عمود مستقل (مفصول بـ tab)
+// //     buffer.writeln(parts.join('\t'));
+// //   }
+
+// //   final temp = html.TextAreaElement();
+// //   temp.value = buffer.toString();
+// //   html.document.body!.append(temp);
+// //   temp.select();
+// //   html.document.execCommand('copy');
+// //   temp.remove();
+//     final corePriority = getPriority(core);
+//     final aggPriority = getPriority(agg);
+
+//     if (aggPriority < corePriority) {
+//       final temp = core;
+//       core = agg;
+//       agg = temp;
+//     }
+
+//    // buffer.writeln('$core\t$agg\t$gig');
+//        buffer.writeln(parts.join('\t'));
+
 //   }
 
 //   final temp = html.TextAreaElement();
@@ -223,31 +314,11 @@ void copyColumnAsExcel(List<dynamic> rows, String title) {
 //   temp.select();
 //   html.document.execCommand('copy');
 //   temp.remove();
-    final corePriority = getPriority(core);
-    final aggPriority = getPriority(agg);
 
-    if (aggPriority < corePriority) {
-      final temp = core;
-      core = agg;
-      agg = temp;
-    }
-
-   // buffer.writeln('$core\t$agg\t$gig');
-       buffer.writeln(parts.join('\t'));
-
-  }
-
-  final temp = html.TextAreaElement();
-  temp.value = buffer.toString();
-  html.document.body!.append(temp);
-  temp.select();
-  html.document.execCommand('copy');
-  temp.remove();
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text("تم نسخ $title بصيغة Excel (text-to-columns)")),
-  );
-}
+//   ScaffoldMessenger.of(context).showSnackBar(
+//     SnackBar(content: Text("تم نسخ $title بصيغة Excel (text-to-columns)")),
+//   );
+// }
 // void copyColumnAsExcel(List<dynamic> rows, String title) {
 //   final buffer = StringBuffer();
 
