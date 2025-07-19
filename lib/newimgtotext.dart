@@ -382,8 +382,7 @@ Table(
             const SizedBox(height: 8),
             if (isLoading) const CircularProgressIndicator(),
             const SizedBox(height: 8),
-            Expanded(
-              child: ListView.builder(
+            ListView.builder(
                 itemCount: images.length,
                 itemBuilder: (context, index) {
                   return Card(
@@ -416,7 +415,7 @@ Table(
                   );
                 },
               ),
-            ),
+            
           ],
         ),
       
@@ -499,7 +498,7 @@ Future<void> pasteDirect(bool isFirstSide) async {
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("xتحليل نصوص - طرفين")),
+      appBar: AppBar(title: const Text("تحليل نصوص - طرفين")),
       body: 
         Row(
           children: [
