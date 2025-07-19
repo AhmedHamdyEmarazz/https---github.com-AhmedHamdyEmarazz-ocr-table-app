@@ -502,9 +502,10 @@ Future<void> pasteDirect(bool isFirstSide) async {
       body: 
         Row(
           children: [
-            Expanded(
-          flex: 3,
-              child: sideWidget(
+          //   Expanded(
+          // flex: 3,
+              // child:
+             sideWidget(
                 title: "الطرف الأول",
                 images: images1,
                 texts: texts1,
@@ -513,13 +514,14 @@ Future<void> pasteDirect(bool isFirstSide) async {
                 onClear: () => clearAll(true),
                 isFirstSide: true,
               ),
-            ),
+            
             const VerticalDivider(width: 8, thickness: 1),
            
-        Expanded(
-          flex: 3,
+        // Expanded(
+        //   flex: 3,
 
-              child: sideWidget(
+        //       child: 
+              sideWidget(
                 title: "الطرف الثاني",
                 images: images2,
                 texts: texts2,
@@ -528,7 +530,7 @@ Future<void> pasteDirect(bool isFirstSide) async {
                 onClear: () => clearAll(false),
                 isFirstSide: false,
               ),
-            ),
+            
             Expanded(
           child: Column(
             children: [
