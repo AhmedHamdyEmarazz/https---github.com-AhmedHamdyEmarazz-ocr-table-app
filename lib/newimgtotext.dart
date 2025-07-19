@@ -343,7 +343,6 @@ void copyFlatText(List<String> col1, List<String> col2, List<String> col3) {
     });
   },
   child: Expanded(
-    child: Expanded(
         child: Column(
           children: [
             Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -420,7 +419,7 @@ Table(
             ),
           ],
         ),
-      ),
+      
      ) );
   }
 void handlePaste(bool isFirstSide) async {
