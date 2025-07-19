@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:js/js.dart';
 import 'package:js/js_util.dart';
+import 'package:js/js_util.dart' as js_util;  
 import 'package:string_similarity/string_similarity.dart';
-
+import 'dart:async';
 @JS('Tesseract')
 external TesseractJS get tesseract;
 
@@ -24,6 +25,9 @@ class ImageTextExtractor extends StatefulWidget {
 
 class _DualImageTextExtractorState extends State<ImageTextExtractor> with AutomaticKeepAliveClientMixin {
   @override
+
+  
+  StreamSubscription<html.Event>? _pasteSub;   // <‑‑ جديد
   bool get wantKeepAlive => true;
 bool showComparison = false;
 List<String> unique1 = [];
@@ -38,6 +42,7 @@ List<String> matched = [];
   List<String> images2 = [];
   List<String> texts2 = [];
   bool isLoading2 = false;
+  int focusedSide = 1; // 1 = الطرف الأول، 2 = الطرف الثاني
 void compareTexts() {
   final lines1 = texts1.expand((t) => t.split('\n')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
   final lines2 = texts2.expand((t) => t.split('\n')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
@@ -161,7 +166,17 @@ void compareTexts() {
     final text = await extractText(processedUrl);
 
     setState(() {
-      texts[index] = text.trim().isEmpty ? "[لم يتم استخراج نص]" : text.trim();
+      //texts[index] = text.trim().isEmpty ? "[لم يتم استخراج نص]" : text.trim();
+final raw = text.trim();
+final excelReady = text
+    .trim()
+    .split('\n')
+    .map((l) => l.trim().replaceAll(RegExp(r' +'), '\t'))   // 👈 كل مسافة ↦ تبويب
+    .join('\n');
+
+texts[index] =
+    excelReady.isEmpty ? "[لم يتم استخراج نص]" : excelReady;
+
     });
   }
 
@@ -216,10 +231,100 @@ void copyTableToClipboard(List<String> col1, List<String> col2, List<String> col
     ];
     buffer.writeln(row.join('\t'));
   }
+ void _handlePaste(html.ClipboardEvent e) async {
+  final items = e.clipboardData?.items;
+  if (items == null) return;
 
+  // 🔄 استخدم فهرسة بدلاً من for‑in
+  for (int i = 0; i < items.length!; i++) {
+    final item = items[i];
+    if (item.kind == 'file' && item.type?.startsWith('image/') == true) {
+      final file = item.getAsFile();
+      if (file == null) continue;
+
+      final reader = html.FileReader();
+      reader.readAsDataUrl(file);
+      await reader.onLoadEnd.first;
+      final imageUrl = reader.result as String;
+
+      setState(() {
+        images1.add(imageUrl);
+        texts1.add('جاري التحليل...');
+      });
+
+      final idx = images1.length - 1;
+      await processImage(imageUrl, texts1, idx);
+    }
+  }
+}
+
+
+@override
+void initState() {
+ super.initState();
+  _pasteSub = html.document.onPaste.listen(_handlePaste);   // <‑‑ جديد
+}
+
+@override
+void dispose() {
+  _pasteSub?.cancel();                                      // <‑‑ جديد
+  super.dispose();
+
+  html.document.onPaste.listen((event) async {
+    final items = event.clipboardData?.items;
+    if (items == null) return;
+
+    for (var i = 0; i < items.length!; i++) {
+      final item = items[i];
+      if (item.kind == 'file') {
+        final blob = item.getAsFile();
+        if (blob != null) {
+          final reader = html.FileReader();
+          reader.readAsDataUrl(blob);
+          await reader.onLoadEnd.first;
+          final imageUrl = reader.result as String;
+
+          setState(() {
+            if (focusedSide == 1) {
+              images1.add(imageUrl);
+              texts1.add("جاري التحليل...");
+            } else {
+              images2.add(imageUrl);
+              texts2.add("جاري التحليل...");
+            }
+          });
+
+          final idx = (focusedSide == 1 ? images1 : images2).length - 1;
+          await processImage(imageUrl, focusedSide == 1 ? texts1 : texts2, idx);
+
+          setState(() {});
+        }
+      }
+    }
+  });
+}
   Clipboard.setData(ClipboardData(text: buffer.toString()));
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(content: Text('📋 تم نسخ الجدول إلى الحافظة')),
+  );
+}
+void copyFlatText(List<String> col1, List<String> col2, List<String> col3) {
+  final rowCount = [col1.length, col2.length, col3.length].reduce((a, b) => a > b ? a : b);
+  final buffer = StringBuffer();
+
+  for (int i = 0; i < rowCount; i++) {
+    final row = [
+      i < col1.length ? col1[i] : '',
+      i < col2.length ? col2[i] : '',
+      i < col3.length ? col3[i] : '',
+    ];
+    // ندمج الأعمدة في سطر واحد (بمسافة فقط)
+    buffer.writeln(row.join(' ').replaceAll('\t', ' '));
+  }
+
+  Clipboard.setData(ClipboardData(text: buffer.toString()));
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('📋 تم نسخ البيانات كعمود واحد')),
   );
 }
   Widget sideWidget({
@@ -231,250 +336,373 @@ void copyTableToClipboard(List<String> col1, List<String> col2, List<String> col
     required VoidCallback onClear,
     required bool isFirstSide,
   }) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              ElevatedButton(onPressed: onPick, child: const Text("اختيار صور")),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: onClear,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text("حذف الكل"),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (isLoading) const CircularProgressIndicator(),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.builder(
-              itemCount: images.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Stack(
-                        children: [
-                          Image.network(images[index]),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.red),
-                              onPressed: () => removeImage(index, isFirstSide),
+    return GestureDetector(
+  onTap: () {
+    setState(() {
+      focusedSide = isFirstSide ? 1 : 2;
+    });
+  },
+  child: Expanded(
+    child: Expanded(
+        child: Column(
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+           Row(
+  children: [
+    ElevatedButton(onPressed: onPick, child: const Text("📁 اختيار صور")),
+    const SizedBox(width: 10),
+    ElevatedButton(
+      onPressed: () => pasteDirect(isFirstSide),
+      child: const Text("📋 لصق الصور"),
+    ),
+    const SizedBox(width: 10),
+    ElevatedButton(
+      onPressed: onClear,
+      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+      child: const Text("🗑️ حذف الكل"),
+    ),
+  ],
+),
+            const SizedBox(height: 8),
+            if (isLoading) const CircularProgressIndicator(),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                itemCount: images.length,
+                itemBuilder: (context, index) {
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Stack(
+                          children: [
+                            Image.network(images[index]),
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: Colors.red),
+                                onPressed: () => removeImage(index, isFirstSide),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: SelectableText(
-                          texts[index],
-                          style: const TextStyle(fontSize: 14),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: SelectableText(
+                            texts[index],
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
+     ) );
   }
+void handlePaste(bool isFirstSide) async {
+  // ننتظر أول عملية لصق فقط
+  final event = await html.document.onPaste.first;   // <-- هنا التغيير
+  final items = event.clipboardData?.items;
+  if (items == null) return;
 
+  for (var i = 0; i < items.length!; i++) {
+    final item = items[i];
+    if (item.kind == 'file' && item.type!.startsWith('image/')) {
+      final file = item.getAsFile();
+      if (file == null) continue;
+
+      final reader = html.FileReader()
+        ..readAsDataUrl(file);
+      await reader.onLoadEnd.first;
+      final imageUrl = reader.result as String;
+
+      // أضف الصورة إلى الطرف المناسب
+      setState(() {
+        if (isFirstSide) {
+          images1.add(imageUrl);
+          texts1.add("جاري التحليل...");
+        } else {
+          images2.add(imageUrl);
+          texts2.add("جاري التحليل...");
+        }
+      });
+
+      final targetTexts = isFirstSide ? texts1 : texts2;
+      final idx = targetTexts.length - 1;   // آخر عنصر أُضيف
+      await processImage(imageUrl, targetTexts, idx);
+    }
+  }
+}
+// ضعها إلى جانب handlePaste السابقة (لا تحذفها)
+Future<void> pasteDirect(bool isFirstSide) async {
+  // واجهات الويب الحديثة – قد تتطلّب HTTPS + صلاحية
+  final clipboard = html.window.navigator.clipboard;
+  if (clipboard == null) return;                       // غير مدعوم
+
+  try {
+    final items = await promiseToFuture<List>(           // clipboard.read()
+        js_util.callMethod(clipboard, 'read', []));
+    for (final item in items) {
+      final types = js_util.getProperty(item, 'types');
+      if (!types.contains('image/png') &&
+          !types.contains('image/jpeg')) continue;
+
+      final blob = await promiseToFuture<html.Blob>(
+          js_util.callMethod(item, 'getType', [types[0]]));
+
+      final reader = html.FileReader()..readAsDataUrl(blob);
+      await reader.onLoadEnd.first;
+      final imageUrl = reader.result as String;
+
+      setState(() {
+        if (isFirstSide) {
+          images1.add(imageUrl);
+          texts1.add('جاري التحليل...');
+        } else {
+          images2.add(imageUrl);
+          texts2.add('جاري التحليل...');
+        }
+      });
+      final idx =
+          (isFirstSide ? texts1.length : texts2.length) - 1;
+      await processImage(
+          imageUrl, isFirstSide ? texts1 : texts2, idx);
+    }
+  } catch (_) {
+    // تجاهل: المتصفّح رفض أو API غير متاح
+  }
+}
   @override
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("تحليل نصوص - طرفين")),
-      body: Row(
-        children: [
-          sideWidget(
-            title: "الطرف الأول",
-            images: images1,
-            texts: texts1,
-            isLoading: isLoading1,
-            onPick: () => pickImages(true),
-            onClear: () => clearAll(true),
-            isFirstSide: true,
-          ),
-          const VerticalDivider(width: 8, thickness: 1),
-          sideWidget(
-            title: "الطرف الثاني",
-            images: images2,
-            texts: texts2,
-            isLoading: isLoading2,
-            onPick: () => pickImages(false),
-            onClear: () => clearAll(false),
-            isFirstSide: false,
-          ),
-          Expanded(
-  child: Column(
-    children: [
-      ElevatedButton(
-        onPressed: compareTexts,
-        child: const Text("مقارنة النصوص"),
-      ),
-      const SizedBox(height: 10),
-       if (showComparison)
-      ElevatedButton.icon(
-  onPressed: () => copyTableToClipboard(unique1, matched, unique2),
-  icon: const Icon(Icons.copy),
-  label: const Text("نسخ الجدول"),
-),
-const SizedBox(height: 10),
-      if (showComparison)
-        Expanded(
-          child: SingleChildScrollView(
-            child: Table(
-              border: TableBorder.all(),
-              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-              columnWidths: const {
-                0: FlexColumnWidth(),
-                1: FlexColumnWidth(),
-                2: FlexColumnWidth(),
-              },
-              children: [
-                const TableRow(
-                  decoration: BoxDecoration(color: Colors.grey),
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text('غير متكرر في الطرف الأول', textAlign: TextAlign.center),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text('✅ متطابق (≥ 80%)', textAlign: TextAlign.center),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text('غير متكرر في الطرف الثاني', textAlign: TextAlign.center),
-                    ),
-                  ],
-                ),
-                for (int i = 0; i < [unique1.length, matched.length, unique2.length].reduce((a, b) => a > b ? a : b); i++)
-                  TableRow(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: SelectableText(i < unique1.length ? unique1[i] : ''),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: SelectableText(i < matched.length ? matched[i] : ''),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: SelectableText(i < unique2.length ? unique2[i] : ''),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-            
-          ),
-        ),
-     if (showComparison)   const SizedBox(height: 30),
-        if (showComparison)
-const Text(
-  "🧹 Remove Duplicate",
-  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-),
-if (showComparison)const SizedBox(height: 10),
-if (showComparison)
- ElevatedButton.icon(
-  onPressed: () => copyTableToClipboard(
-    unique1.toSet().toList(),
-    matched.toSet().toList(),
-    unique2.toSet().toList(),
-  ),
-  icon: const Icon(Icons.copy),
-  label: const Text("نسخ الجدول"),
-),
-const SizedBox(height: 10),
-const SizedBox(height: 10),
-if (showComparison)
-Expanded(
-  child: SingleChildScrollView(
-    child: Table(
-      border: TableBorder.all(),
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      columnWidths: const {
-        0: FlexColumnWidth(),
-        1: FlexColumnWidth(),
-        2: FlexColumnWidth(),
-      },
-      children: [
-        const TableRow(
-          decoration: BoxDecoration(color: Colors.grey),
+      appBar: AppBar(title: const Text("xتحليل نصوص - طرفين")),
+      body: 
+        Row(
           children: [
-            Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text('غير متكرر في الطرف الأول', textAlign: TextAlign.center),
+            Expanded(
+          flex: 3,
+              child: sideWidget(
+                title: "الطرف الأول",
+                images: images1,
+                texts: texts1,
+                isLoading: isLoading1,
+                onPick: () => pickImages(true),
+                onClear: () => clearAll(true),
+                isFirstSide: true,
+              ),
             ),
-            Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text('✅ متطابق (بدون تكرار)', textAlign: TextAlign.center),
+            const VerticalDivider(width: 8, thickness: 1),
+           
+        Expanded(
+          flex: 3,
+
+              child: sideWidget(
+                title: "الطرف الثاني",
+                images: images2,
+                texts: texts2,
+                isLoading: isLoading2,
+                onPick: () => pickImages(false),
+                onClear: () => clearAll(false),
+                isFirstSide: false,
+              ),
             ),
-            Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text('غير متكرر في الطرف الثاني', textAlign: TextAlign.center),
-            ),
-          ],
-        ),
-        for (int i = 0;
-            i <
-                [
-                  unique1.toSet().length,
-                  matched.toSet().length,
-                  unique2.toSet().length
-                ].reduce((a, b) => a > b ? a : b);
-            i++)
-          TableRow(
+            Expanded(
+          child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SelectableText(
-                  i < unique1.toSet().length
-                      ? unique1.toSet().elementAt(i)
-                      : '',
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SelectableText(
-                  i < matched.toSet().length
-                      ? matched.toSet().elementAt(i)
-                      : '',
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SelectableText(
-                  i < unique2.toSet().length
-                      ? unique2.toSet().elementAt(i)
-                      : '',
-                ),
-              ),
-            ],
-          ),
+        ElevatedButton(
+          onPressed: compareTexts,
+          child: const Text("مقارنة النصوص"),
+        ),
+        const SizedBox(height: 10),
+      if (showComparison)
+  Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+    child: Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
+      children: [
+        ElevatedButton(
+          onPressed: () => copyTableToClipboard(unique1, matched, unique2),
+          child: const Text("📋 نسخ كأعمدة"),
+        ),
+        ElevatedButton(
+          onPressed: () => copyFlatText(unique1, matched, unique2),
+          child: const Text("📋 نسخ كعمود واحد"),
+        ),
       ],
     ),
   ),
-),
-    ],
+        const SizedBox(height: 10),
+        if (showComparison)
+          Expanded(
+            child: SingleChildScrollView(
+              child: Table(
+                border: TableBorder.all(),
+                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                columnWidths: const {
+                  0: FlexColumnWidth(),
+                  1: FlexColumnWidth(),
+                  2: FlexColumnWidth(),
+                },
+                children: [
+                  const TableRow(
+                    decoration: BoxDecoration(color: Colors.grey),
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text('غير متكرر في الطرف الأول', textAlign: TextAlign.center),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text('✅ متطابق (≥ 80%)', textAlign: TextAlign.center),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text('غير متكرر في الطرف الثاني', textAlign: TextAlign.center),
+                      ),
+                    ],
+                  ),
+                  for (int i = 0; i < [unique1.length, matched.length, unique2.length].reduce((a, b) => a > b ? a : b); i++)
+                    TableRow(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: SelectableText(i < unique1.length ? unique1[i] : ''),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: SelectableText(i < matched.length ? matched[i] : ''),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: SelectableText(i < unique2.length ? unique2[i] : ''),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              
+            ),
+          ),
+             if (showComparison)   const SizedBox(height: 30),
+          if (showComparison)
+        const Text(
+          "🧹 Remove Duplicate",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        if (showComparison)const SizedBox(height: 10),
+        if (showComparison)
+  Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+    child: Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
+      children: [
+        ElevatedButton(
+          onPressed: () => copyTableToClipboard(unique1.toSet().toList(),
+            matched.toSet().toList(),
+            unique2.toSet().toList(),),
+          child: const Text("📋 نسخ كأعمدة"),
+        ),
+        ElevatedButton(
+          onPressed: () => copyFlatText(unique1.toSet().toList(),
+            matched.toSet().toList(),
+            unique2.toSet().toList(),),
+          child: const Text("📋 نسخ كعمود واحد"),
+        ),
+      ],
+    ),
   ),
-),
+     
+       
+        const SizedBox(height: 10),
+        const SizedBox(height: 10),
+        if (showComparison)
+        Expanded(
+          child: SingleChildScrollView(
+            child: Table(
+        border: TableBorder.all(),
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        columnWidths: const {
+          0: FlexColumnWidth(),
+          1: FlexColumnWidth(),
+          2: FlexColumnWidth(),
+        },
+        children: [
+          const TableRow(
+            decoration: BoxDecoration(color: Colors.grey),
+            children: [
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text('غير متكرر في الطرف الأول', textAlign: TextAlign.center),
+              ),
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text('✅ متطابق (بدون تكرار)', textAlign: TextAlign.center),
+              ),
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Text('غير متكرر في الطرف الثاني', textAlign: TextAlign.center),
+              ),
+            ],
+          ),
+          for (int i = 0;
+              i <
+                  [
+                    unique1.toSet().length,
+                    matched.toSet().length,
+                    unique2.toSet().length
+                  ].reduce((a, b) => a > b ? a : b);
+              i++)
+            TableRow(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SelectableText(
+                    i < unique1.toSet().length
+                        ? unique1.toSet().elementAt(i)
+                        : '',
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SelectableText(
+                    i < matched.toSet().length
+                        ? matched.toSet().elementAt(i)
+                        : '',
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SelectableText(
+                    i < unique2.toSet().length
+                        ? unique2.toSet().elementAt(i)
+                        : '',
+                  ),
+                ),
+              ],
+            ),
         ],
-      ),
-    );
+            ),
+          ),
+        ),
+            ],
+          ),
+        ),
+          ],
+        ),
+      )
+    ;
   }
 }
