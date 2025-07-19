@@ -498,7 +498,7 @@ Future<void> pasteDirect(bool isFirstSide) async {
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("تحليل نصوص - طرفين")),
+      appBar: AppBar(title: const Text("mتحليل نصوص - طرفين")),
       body: 
         Row(
           children: [
@@ -532,7 +532,8 @@ Future<void> pasteDirect(bool isFirstSide) async {
               ),
             
             Expanded(
-          child: Column(
+          child: 
+          Column(
             children: [
         ElevatedButton(
           onPressed: compareTexts,
