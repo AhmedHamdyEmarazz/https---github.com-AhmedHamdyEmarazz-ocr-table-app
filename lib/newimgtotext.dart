@@ -531,8 +531,8 @@ Future<void> pasteDirect(bool isFirstSide) async {
                 isFirstSide: false,
               ),
             
-            Expanded(
-          child: 
+          //   Expanded(
+          // child: 
           Column(
             children: [
         ElevatedButton(
@@ -561,8 +561,9 @@ Future<void> pasteDirect(bool isFirstSide) async {
   ),
         const SizedBox(height: 10),
         if (showComparison)
-          Expanded(
-            child: SingleChildScrollView(
+          // Expanded(
+          //   child: 
+            SingleChildScrollView(
               child: Table(
                 border: TableBorder.all(),
                 defaultVerticalAlignment: TableCellVerticalAlignment.middle,
@@ -610,7 +611,7 @@ Future<void> pasteDirect(bool isFirstSide) async {
               ),
               
             ),
-          ),
+          
              if (showComparison)   const SizedBox(height: 30),
           if (showComparison)
         const Text(
@@ -646,8 +647,9 @@ Future<void> pasteDirect(bool isFirstSide) async {
         const SizedBox(height: 10),
         const SizedBox(height: 10),
         if (showComparison)
-        Expanded(
-          child: SingleChildScrollView(
+        // Expanded(
+          //child:
+           SingleChildScrollView(
             child: Table(
         border: TableBorder.all(),
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
@@ -711,12 +713,12 @@ Future<void> pasteDirect(bool isFirstSide) async {
               ],
             ),
         ],
-            ),
+            
           ),
         ),
             ],
           ),
-        ),
+        
           ],
         ),
       )
