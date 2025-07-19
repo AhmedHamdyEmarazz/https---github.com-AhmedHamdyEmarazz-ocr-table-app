@@ -363,22 +363,22 @@ void copyFlatText(List<String> col1, List<String> col2, List<String> col3) {
     ),
   ],
 ),
-Table(
-  border: TableBorder.all(),
-  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-  children: const [
-    TableRow(
-      decoration: BoxDecoration(color: Color(0xFFE0E0E0)),
-      children: [
-        Padding(padding: EdgeInsets.all(6), child: Text("Alarm name", textAlign: TextAlign.center)),
-        Padding(padding: EdgeInsets.all(6), child: Text("Site name", textAlign: TextAlign.center)),
-        Padding(padding: EdgeInsets.all(6), child: Text("Additional text", textAlign: TextAlign.center)),
-        Padding(padding: EdgeInsets.all(6), child: Text("Last time detected", textAlign: TextAlign.center)),
-        Padding(padding: EdgeInsets.all(6), child: Text("Object name", textAlign: TextAlign.center)),
-      ],
-    ),
-  ],
-),
+// Table(
+//   border: TableBorder.all(),
+//   defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+//   children: const [
+//     TableRow(
+//       decoration: BoxDecoration(color: Color(0xFFE0E0E0)),
+//       children: [
+//         Padding(padding: EdgeInsets.all(6), child: Text("Alarm name", textAlign: TextAlign.center)),
+//         Padding(padding: EdgeInsets.all(6), child: Text("Site name", textAlign: TextAlign.center)),
+//         Padding(padding: EdgeInsets.all(6), child: Text("Additional text", textAlign: TextAlign.center)),
+//         Padding(padding: EdgeInsets.all(6), child: Text("Last time detected", textAlign: TextAlign.center)),
+//         Padding(padding: EdgeInsets.all(6), child: Text("Object name", textAlign: TextAlign.center)),
+//       ],
+//     ),
+//   ],
+// ),
             const SizedBox(height: 8),
             if (isLoading) const CircularProgressIndicator(),
             const SizedBox(height: 8),
