@@ -867,14 +867,17 @@ Widget build(BuildContext context) {
 
   return Scaffold(
     appBar: AppBar(title: const Text("تحليل نصوص - طرفين")),
-   body: isDesktop()
-    ? _buildDesktopLayout()
-    : SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
-          child: _buildDesktopLayout(),
-        ),
-      ),
+   body:
+    // isDesktop()
+    // ? 
+    _buildDesktopLayout()
+   // :
+    //  SingleChildScrollView(
+    //     scrollDirection: Axis.horizontal,
+    //     child: ConstrainedBox(
+    //       constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+    //       child: _buildDesktopLayout(),
+    //     ),
+    //   ),
   );
 }}
