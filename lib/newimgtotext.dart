@@ -775,11 +775,10 @@ List<TableRow> _buildComparisonRowsWithoutDuplicates() {
 Widget build(BuildContext context) {
   super.build(context);
 
-  final isWide = isDesktop(); // تستخدمها لتحديد طريقة العرض
+  final isWide = isDesktop(); // platform check
   final mainContent = Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      // الطرف الأول
       sideWidget(
         title: "الطرف الأول",
         images: images1,
@@ -790,7 +789,6 @@ Widget build(BuildContext context) {
         isFirstSide: true,
       ),
       const VerticalDivider(width: 8, thickness: 1),
-      // الطرف الثاني
       sideWidget(
         title: "الطرف الثاني",
         images: images2,
@@ -800,7 +798,6 @@ Widget build(BuildContext context) {
         onClear: () => clearAll(false),
         isFirstSide: false,
       ),
-      // زر المقارنة + الجدول
       Column(
         children: [
           ElevatedButton(
@@ -817,8 +814,7 @@ Widget build(BuildContext context) {
                 alignment: WrapAlignment.center,
                 children: [
                   ElevatedButton(
-                    onPressed: () =>
-                        copyTableToClipboard(unique1, matched, unique2),
+                    onPressed: () => copyTableToClipboard(unique1, matched, unique2),
                     child: const Text("📋 نسخ"),
                   ),
                 ],
@@ -843,18 +839,15 @@ Widget build(BuildContext context) {
                       children: [
                         Padding(
                           padding: EdgeInsets.all(8.0),
-                          child: Text('غير متكرر في الطرف الأول',
-                              textAlign: TextAlign.center),
+                          child: Text('غير متكرر في الطرف الأول', textAlign: TextAlign.center),
                         ),
                         Padding(
                           padding: EdgeInsets.all(8.0),
-                          child: Text('✅ متطابق (بدون تكرار)',
-                              textAlign: TextAlign.center),
+                          child: Text('✅ متطابق (بدون تكرار)', textAlign: TextAlign.center),
                         ),
                         Padding(
                           padding: EdgeInsets.all(8.0),
-                          child: Text('غير متكرر في الطرف الثاني',
-                              textAlign: TextAlign.center),
+                          child: Text('غير متكرر في الطرف الثاني', textAlign: TextAlign.center),
                         ),
                       ],
                     ),
@@ -863,7 +856,7 @@ Widget build(BuildContext context) {
                 ),
               ),
             ),
-          ]
+          ],
         ],
       ),
     ],
@@ -872,15 +865,18 @@ Widget build(BuildContext context) {
   return Scaffold(
     appBar: AppBar(title: const Text("تحليل نصوص - طرفين")),
     body: isWide
-        ? mainContent
+        ? Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: mainContent,
+          )
         : SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 1100),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 1200),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
                   child: mainContent,
                 ),
               ),
