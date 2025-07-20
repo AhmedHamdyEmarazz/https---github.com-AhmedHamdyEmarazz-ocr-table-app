@@ -503,6 +503,94 @@ Future<void> pasteDirect(bool isFirstSide) async {
     // تجاهل: المتصفّح رفض أو API غير متاح
   }
 }
+Widget _buildDesktopLayout() {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Flexible(
+        child: sideWidget(
+          title: "الطرف الأول",
+          images: images1,
+          texts: texts1,
+          isLoading: isLoading1,
+          onPick: () => pickImages(true),
+          onClear: () => clearAll(true),
+          isFirstSide: true,
+        ),
+      ),
+      const VerticalDivider(width: 8, thickness: 1),
+      Flexible(
+        child: sideWidget(
+          title: "الطرف الثاني",
+          images: images2,
+          texts: texts2,
+          isLoading: isLoading2,
+          onPick: () => pickImages(false),
+          onClear: () => clearAll(false),
+          isFirstSide: false,
+        ),
+      ),
+      // زر المقارنة والجدول
+      Column(
+        children: [
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: compareTexts,
+            child: const Text("مقارنة النصوص"),
+          ),
+          if (showComparison) const SizedBox(height: 10),
+          if (showComparison)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: ElevatedButton(
+                onPressed: () =>
+                    copyTableToClipboard(unique1, matched, unique2),
+                child: const Text("📋 نسخ"),
+              ),
+            ),
+          if (showComparison)
+            SizedBox(
+              width: 300,
+              height: 400,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: Table(
+                  border: TableBorder.all(),
+                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                  columnWidths: const {
+                    0: FixedColumnWidth(100),
+                    1: FixedColumnWidth(100),
+                    2: FixedColumnWidth(100),
+                  },
+                  children: [
+                    const TableRow(
+                      decoration: BoxDecoration(color: Colors.grey),
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('غير متكرر في الطرف الأول', textAlign: TextAlign.center),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('✅ متطابق', textAlign: TextAlign.center),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('غير متكرر في الطرف الثاني', textAlign: TextAlign.center),
+                        ),
+                      ],
+                    ),
+                    ..._buildComparisonRowsWithoutDuplicates(),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    ],
+  );
+}
+
 List<TableRow> _buildComparisonRowsWithoutDuplicates() {
   final uniqueList1 = unique1.toSet().toList();
   final uniqueList2 = unique2.toSet().toList();
@@ -779,120 +867,14 @@ Widget build(BuildContext context) {
 
   return Scaffold(
     appBar: AppBar(title: const Text("تحليل نصوص - طرفين")),
-    body: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minWidth: isWide ? 1000 : 1400),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 8.0),
-
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                /// الطرف الأول
-                SizedBox(
-                  width: 430,
-                  child: sideWidget(
-                    title: "الطرف الأول",
-                    images: images1,
-                    texts: texts1,
-                    isLoading: isLoading1,
-                    onPick: () => pickImages(true),
-                    onClear: () => clearAll(true),
-                    isFirstSide: true,
-                  ),
-                ),
-
-                const VerticalDivider(width: 90),
-                
-
-                /// الطرف الثاني
-                SizedBox(
-                  width: 430,
-                  child: sideWidget(
-                    title: "الطرف الثاني",
-                    images: images2,
-                    texts: texts2,
-                    isLoading: isLoading2,
-                    onPick: () => pickImages(false),
-                    onClear: () => clearAll(false),
-                    isFirstSide: false,
-                  ),
-                ),
-
-                /// زر المقارنة والجدول
-                SizedBox(
-                  width: 400,
-                  child: Column(
-                    children: [
-                      ElevatedButton(
-                        onPressed: compareTexts,
-                        child: const Text("مقارنة النصوص"),
-                      ),
-                      const SizedBox(height: 10),
-                      if (showComparison)
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () =>
-                                  copyTableToClipboard(unique1, matched, unique2),
-                              child: const Text("📋 نسخ"),
-                            ),
-                          ],
-                        ),
-                      const SizedBox(height: 10),
-                      if (showComparison)
-                        SizedBox(
-                          height: 400,
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
-                            child: Table(
-                              border: TableBorder.all(),
-                              defaultVerticalAlignment:
-                                  TableCellVerticalAlignment.middle,
-                              columnWidths: const {
-                                0: FixedColumnWidth(100),
-                                1: FixedColumnWidth(100),
-                                2: FixedColumnWidth(100),
-                              },
-                              children: [
-                                const TableRow(
-                                  decoration: BoxDecoration(color: Colors.grey),
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsets.all(8.0),
-                                      child: Text('غير متكرر في الطرف الأول',
-                                          textAlign: TextAlign.center),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.all(8.0),
-                                      child: Text('✅ متطابق',
-                                          textAlign: TextAlign.center),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.all(8.0),
-                                      child: Text('غير متكرر في الطرف الثاني',
-                                          textAlign: TextAlign.center),
-                                    ),
-                                  ],
-                                ),
-                                ..._buildComparisonRowsWithoutDuplicates(),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+   body: isDesktop()
+    ? _buildDesktopLayout()
+    : SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width),
+          child: _buildDesktopLayout(),
         ),
       ),
-    ),
   );
 }}
