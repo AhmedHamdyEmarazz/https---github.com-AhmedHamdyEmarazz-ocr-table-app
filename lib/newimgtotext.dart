@@ -221,7 +221,7 @@ void copyTableToClipboard(List<String> col1, List<String> col2, List<String> col
   final rowCount = [col1.length, col2.length, col3.length].reduce((a, b) => a > b ? a : b);
   final buffer = StringBuffer();
 
-  buffer.writeln("الطرف الأول\tالمتطابق\tالطرف الثاني");
+  //buffer.writeln("الطرف الأول\tالمتطابق\tالطرف الثاني");
 
   for (int i = 0; i < rowCount; i++) {
     final row = [
@@ -229,9 +229,16 @@ void copyTableToClipboard(List<String> col1, List<String> col2, List<String> col
       i < col2.length ? col2[i] : '',
       i < col3.length ? col3[i] : '',
     ];
-    buffer.writeln(row.join('\t'));
+    buffer.writeln(row);
   }
- void _handlePaste(html.ClipboardEvent e) async {
+ 
+  Clipboard.setData(ClipboardData(text: buffer.toString()));
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('📋 تم نسخ الجدول إلى الحافظة')),
+  );
+}
+
+void _handlePaste(html.ClipboardEvent e) async {
   final items = e.clipboardData?.items;
   if (items == null) return;
 
@@ -302,11 +309,6 @@ void dispose() {
       }
     }
   });
-}
-  Clipboard.setData(ClipboardData(text: buffer.toString()));
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('📋 تم نسخ الجدول إلى الحافظة')),
-  );
 }
 void copyFlatText(List<String> col1, List<String> col2, List<String> col3) {
   final rowCount = [col1.length, col2.length, col3.length].reduce((a, b) => a > b ? a : b);
@@ -534,7 +536,7 @@ final matchedList = matched.toSet().toList();
 final maxLength = [uniqueList1.length, matchedList.length, uniqueList2.length]
     .reduce((a, b) => a > b ? a : b);
     return Scaffold(
-      appBar: AppBar(title: const Text("mتحليل نصوص - طرفين")),
+      appBar: AppBar(title: const Text("تحليل نصوص - طرفين")),
       body: 
         Row(
           children: [
@@ -586,12 +588,13 @@ final maxLength = [uniqueList1.length, matchedList.length, uniqueList2.length]
       children: [
         ElevatedButton(
           onPressed: () => copyTableToClipboard(unique1, matched, unique2),
-          child: const Text("📋 نسخ كأعمدة"),
+                    child: const Text("📋 نسخ"),
+
         ),
-        ElevatedButton(
-          onPressed: () => copyFlatText(unique1, matched, unique2),
-          child: const Text("📋 نسخ كعمود واحد"),
-        ),
+        // ElevatedButton(
+        //   onPressed: () => copyFlatText(unique1, matched, unique2),
+        //   child: const Text("📋 نسخ كأعمدة"),
+        // ),
       ],
     ),
   ),
