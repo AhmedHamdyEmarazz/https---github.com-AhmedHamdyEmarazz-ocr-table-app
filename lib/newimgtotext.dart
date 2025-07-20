@@ -460,6 +460,10 @@ void handlePaste(bool isFirstSide) async {
     }
   }
 }
+bool isDesktop() {
+  final platform = html.window.navigator.platform?.toLowerCase() ?? '';
+  return platform.contains('mac') || platform.contains('win');
+}
 // ضعها إلى جانب handlePaste السابقة (لا تحذفها)
 Future<void> pasteDirect(bool isFirstSide) async {
   // واجهات الويب الحديثة – قد تتطلّب HTTPS + صلاحية
@@ -508,7 +512,8 @@ List<TableRow> _buildComparisonRowsWithoutDuplicates() {
       .reduce((a, b) => a > b ? a : b);
 
   return List.generate(maxLength, (i) {
-    return TableRow(
+    return 
+    TableRow(
       children: [
         Padding(
           padding: const EdgeInsets.all(8.0),
@@ -526,145 +531,59 @@ List<TableRow> _buildComparisonRowsWithoutDuplicates() {
     );
   });
 }
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-        final uniqueList1 = unique1.toSet().toList();
-final uniqueList2 = unique2.toSet().toList();
-final matchedList = matched.toSet().toList();
+//   @override
+//   Widget build(BuildContext context) {
+//     super.build(context);
+//         final uniqueList1 = unique1.toSet().toList();
+// final uniqueList2 = unique2.toSet().toList();
+// final matchedList = matched.toSet().toList();
 
-final maxLength = [uniqueList1.length, matchedList.length, uniqueList2.length]
-    .reduce((a, b) => a > b ? a : b);
-    return Scaffold(
-      appBar: AppBar(title: const Text("تحليل نصوص - طرفين")),
-      body: 
-        Row(
-          children: [
-          //   Expanded(
-          // flex: 3,
-              // child:
-             sideWidget(
-                title: "الطرف الأول",
-                images: images1,
-                texts: texts1,
-                isLoading: isLoading1,
-                onPick: () => pickImages(true),
-                onClear: () => clearAll(true),
-                isFirstSide: true,
-              ),
+// final maxLength = [uniqueList1.length, matchedList.length, uniqueList2.length]
+//     .reduce((a, b) => a > b ? a : b);
+//     return Scaffold(
+//       appBar: AppBar(title: const Text("تحليل نصوص - طرفين")),
+//       body: 
+//         Row(
+//           children: [
+//           //   Expanded(
+//           // flex: 3,
+//               // child:
+//              sideWidget(
+//                 title: "الطرف الأول",
+//                 images: images1,
+//                 texts: texts1,
+//                 isLoading: isLoading1,
+//                 onPick: () => pickImages(true),
+//                 onClear: () => clearAll(true),
+//                 isFirstSide: true,
+//               ),
             
-            const VerticalDivider(width: 8, thickness: 1),
+//             const VerticalDivider(width: 8, thickness: 1),
            
-        // Expanded(
-        //   flex: 3,
+//         // Expanded(
+//         //   flex: 3,
 
-        //       child: 
-              sideWidget(
-                title: "الطرف الثاني",
-                images: images2,
-                texts: texts2,
-                isLoading: isLoading2,
-                onPick: () => pickImages(false),
-                onClear: () => clearAll(false),
-                isFirstSide: false,
-              ),
+//         //       child: 
+//               sideWidget(
+//                 title: "الطرف الثاني",
+//                 images: images2,
+//                 texts: texts2,
+//                 isLoading: isLoading2,
+//                 onPick: () => pickImages(false),
+//                 onClear: () => clearAll(false),
+//                 isFirstSide: false,
+//               ),
             
-          //   Expanded(
-          // child: 
-          Column(
-            children: [
-        ElevatedButton(
-          onPressed: compareTexts,
-          child: const Text("مقارنة النصوص"),
-        ),
-        const SizedBox(height: 10),
-      if (showComparison)
-  Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-    child: Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
-      children: [
-        ElevatedButton(
-          onPressed: () => copyTableToClipboard(unique1, matched, unique2),
-                    child: const Text("📋 نسخ"),
-
-        ),
-        // ElevatedButton(
-        //   onPressed: () => copyFlatText(unique1, matched, unique2),
-        //   child: const Text("📋 نسخ كأعمدة"),
-        // ),
-      ],
-    ),
-  ),
-        const SizedBox(height: 10),
-        if (showComparison)
-  Padding(
-    padding: const EdgeInsets.all(8.0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "📊 جدول بدون تكرار:",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 10),
-        // SingleChildScrollView(
-        //   scrollDirection: Axis.horizontal,
-        //   child: Column(
-        //     children: [
-               SizedBox(height: 400,
-    child: 
-    SingleChildScrollView(
-  scrollDirection: Axis.vertical,
-  child:
-    Table(
-      border: TableBorder.all(),
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      columnWidths: const {
-        0: FixedColumnWidth(100),  // حجم واضح لكل عمود
-        1: FixedColumnWidth(100),
-        2: FixedColumnWidth(100),
-      },
-      children: [
-        const TableRow(
-          decoration: BoxDecoration(color: Colors.grey),
-          children: [
-            Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text('غير متكرر في الطرف الأول', textAlign: TextAlign.center),
-            ),
-            Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text('✅ متطابق (بدون تكرار)', textAlign: TextAlign.center),
-            ),
-            Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text('غير متكرر في الطرف الثاني', textAlign: TextAlign.center),
-            ),
-          ],
-        ),
-        ..._buildComparisonRowsWithoutDuplicates(),
-      ],
-    ),
-  ),
-)
-            ],
-          ),
-        ),
-      
-    
-  
-          
-//              if (showComparison)   const SizedBox(height: 30),
-//           if (showComparison)
-//         const Text(
-//           "🧹 Remove Duplicate",
-//           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+//           //   Expanded(
+//           // child: 
+//           Column(
+//             children: [
+//         ElevatedButton(
+//           onPressed: compareTexts,
+//           child: const Text("مقارنة النصوص"),
 //         ),
-//         if (showComparison)const SizedBox(height: 10),
-//         if (showComparison)
+//         const SizedBox(height: 10),
+//       if (showComparison)
 //   Padding(
 //     padding: const EdgeInsets.symmetric(horizontal: 8.0),
 //     child: Wrap(
@@ -673,96 +592,299 @@ final maxLength = [uniqueList1.length, matchedList.length, uniqueList2.length]
 //       alignment: WrapAlignment.center,
 //       children: [
 //         ElevatedButton(
-//           onPressed: () => copyTableToClipboard(unique1.toSet().toList(),
-//             matched.toSet().toList(),
-//             unique2.toSet().toList(),),
-//           child: const Text("📋 نسخ كأعمدة"),
+//           onPressed: () => copyTableToClipboard(unique1, matched, unique2),
+//                     child: const Text("📋 نسخ"),
+
 //         ),
-//         ElevatedButton(
-//           onPressed: () => copyFlatText(unique1.toSet().toList(),
-//             matched.toSet().toList(),
-//             unique2.toSet().toList(),),
-//           child: const Text("📋 نسخ كعمود واحد"),
-//         ),
+//         // ElevatedButton(
+//         //   onPressed: () => copyFlatText(unique1, matched, unique2),
+//         //   child: const Text("📋 نسخ كأعمدة"),
+//         // ),
 //       ],
 //     ),
 //   ),
-     
-       
-//         const SizedBox(height: 10),
 //         const SizedBox(height: 10),
 //         if (showComparison)
-//         SizedBox(height: 200,
-//            child:
-//         Expanded(
-//             child:
-//              SingleChildScrollView(
-//               child:
-//                SizedBox(height: 200,
-//            child:
-//                Table(
-//           border: TableBorder.all(),
-//           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-//           columnWidths: const {
-//             0: FlexColumnWidth(),
-//             1: FlexColumnWidth(),
-//             2: FlexColumnWidth(),
-//           },
+//   Padding(
+//     padding: const EdgeInsets.all(8.0),
+//     child: Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       children: [
+//         const Text(
+//           "📊 جدول بدون تكرار:",
+//           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+//         ),
+//         const SizedBox(height: 10),
+//         // SingleChildScrollView(
+//         //   scrollDirection: Axis.horizontal,
+//         //   child: Column(
+//         //     children: [
+//                SizedBox(height: 400,
+//     child: 
+//     SingleChildScrollView(
+//   scrollDirection: Axis.vertical,
+//   child:
+//     Table(
+//       border: TableBorder.all(),
+//       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+//       columnWidths: const {
+//         0: FixedColumnWidth(100),  // حجم واضح لكل عمود
+//         1: FixedColumnWidth(100),
+//         2: FixedColumnWidth(100),
+//       },
+//       children: [
+//         const TableRow(
+//           decoration: BoxDecoration(color: Colors.grey),
 //           children: [
-//             const TableRow(
-//               decoration: BoxDecoration(color: Colors.grey),
-//               children: [
-//                 Padding(
-//                   padding: EdgeInsets.all(8.0),
-//                   child: Text('غير متكرر في الطرف الأول', textAlign: TextAlign.center),
-//                 ),
-//                 Padding(
-//                   padding: EdgeInsets.all(8.0),
-//                   child: Text('✅ متطابق (بدون تكرار)', textAlign: TextAlign.center),
-//                 ),
-//                 Padding(
-//                   padding: EdgeInsets.all(8.0),
-//                   child: Text('غير متكرر في الطرف الثاني', textAlign: TextAlign.center),
-//                 ),
-//               ],
+//             Padding(
+//               padding: EdgeInsets.all(8.0),
+//               child: Text('غير متكرر في الطرف الأول', textAlign: TextAlign.center),
 //             ),
+//             Padding(
+//               padding: EdgeInsets.all(8.0),
+//               child: Text('✅ متطابق (بدون تكرار)', textAlign: TextAlign.center),
+//             ),
+//             Padding(
+//               padding: EdgeInsets.all(8.0),
+//               child: Text('غير متكرر في الطرف الثاني', textAlign: TextAlign.center),
+//             ),
+//           ],
+//         ),
+//         ..._buildComparisonRowsWithoutDuplicates(),
+//       ],
+//     ),
+//   ),
+// )
+//             ],
+//           ),
+//         ),
+      
+    
+  
+          
+// //              if (showComparison)   const SizedBox(height: 30),
+// //           if (showComparison)
+// //         const Text(
+// //           "🧹 Remove Duplicate",
+// //           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+// //         ),
+// //         if (showComparison)const SizedBox(height: 10),
+// //         if (showComparison)
+// //   Padding(
+// //     padding: const EdgeInsets.symmetric(horizontal: 8.0),
+// //     child: Wrap(
+// //       spacing: 8,
+// //       runSpacing: 8,
+// //       alignment: WrapAlignment.center,
+// //       children: [
+// //         ElevatedButton(
+// //           onPressed: () => copyTableToClipboard(unique1.toSet().toList(),
+// //             matched.toSet().toList(),
+// //             unique2.toSet().toList(),),
+// //           child: const Text("📋 نسخ كأعمدة"),
+// //         ),
+// //         ElevatedButton(
+// //           onPressed: () => copyFlatText(unique1.toSet().toList(),
+// //             matched.toSet().toList(),
+// //             unique2.toSet().toList(),),
+// //           child: const Text("📋 نسخ كعمود واحد"),
+// //         ),
+// //       ],
+// //     ),
+// //   ),
+     
+       
+// //         const SizedBox(height: 10),
+// //         const SizedBox(height: 10),
+// //         if (showComparison)
+// //         SizedBox(height: 200,
+// //            child:
+// //         Expanded(
+// //             child:
+// //              SingleChildScrollView(
+// //               child:
+// //                SizedBox(height: 200,
+// //            child:
+// //                Table(
+// //           border: TableBorder.all(),
+// //           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+// //           columnWidths: const {
+// //             0: FlexColumnWidth(),
+// //             1: FlexColumnWidth(),
+// //             2: FlexColumnWidth(),
+// //           },
+// //           children: [
+// //             const TableRow(
+// //               decoration: BoxDecoration(color: Colors.grey),
+// //               children: [
+// //                 Padding(
+// //                   padding: EdgeInsets.all(8.0),
+// //                   child: Text('غير متكرر في الطرف الأول', textAlign: TextAlign.center),
+// //                 ),
+// //                 Padding(
+// //                   padding: EdgeInsets.all(8.0),
+// //                   child: Text('✅ متطابق (بدون تكرار)', textAlign: TextAlign.center),
+// //                 ),
+// //                 Padding(
+// //                   padding: EdgeInsets.all(8.0),
+// //                   child: Text('غير متكرر في الطرف الثاني', textAlign: TextAlign.center),
+// //                 ),
+// //               ],
+// //             ),
               
 
-// for (int i = 0; i < maxLength; i++)
-//   TableRow(
-//     children: [
-//       Padding(
-//         padding: const EdgeInsets.all(8.0),
-//         child: SelectableText(
-//           i < uniqueList1.length ? uniqueList1[i] : '',
-//         ),
-//       ),
-//       Padding(
-//         padding: const EdgeInsets.all(8.0),
-//         child: SelectableText(
-//           i < matchedList.length ? matchedList[i] : '',
-//         ),
-//       ),
-//       Padding(
-//         padding: const EdgeInsets.all(8.0),
-//         child: SelectableText(
-//           i < uniqueList2.length ? uniqueList2[i] : '',
-//         ),
-//       ),
-//     ],
-//   ),
-//           ],
+// // for (int i = 0; i < maxLength; i++)
+// //   TableRow(
+// //     children: [
+// //       Padding(
+// //         padding: const EdgeInsets.all(8.0),
+// //         child: SelectableText(
+// //           i < uniqueList1.length ? uniqueList1[i] : '',
+// //         ),
+// //       ),
+// //       Padding(
+// //         padding: const EdgeInsets.all(8.0),
+// //         child: SelectableText(
+// //           i < matchedList.length ? matchedList[i] : '',
+// //         ),
+// //       ),
+// //       Padding(
+// //         padding: const EdgeInsets.all(8.0),
+// //         child: SelectableText(
+// //           i < uniqueList2.length ? uniqueList2[i] : '',
+// //         ),
+// //       ),
+// //     ],
+// //   ),
+// //           ],
               
-//             ),
-//           ),),
+// //             ),
+// //           ),),
         
-//            ) )
- ],
+// //            ) )
+//  ],
+//           ),
+        
+//           ],
+//         ),
+//       )
+//     ;
+//   }
+// }
+@override
+Widget build(BuildContext context) {
+  super.build(context);
+
+  final isWide = isDesktop(); // تستخدمها لتحديد طريقة العرض
+  final mainContent = Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // الطرف الأول
+      sideWidget(
+        title: "الطرف الأول",
+        images: images1,
+        texts: texts1,
+        isLoading: isLoading1,
+        onPick: () => pickImages(true),
+        onClear: () => clearAll(true),
+        isFirstSide: true,
+      ),
+      const VerticalDivider(width: 8, thickness: 1),
+      // الطرف الثاني
+      sideWidget(
+        title: "الطرف الثاني",
+        images: images2,
+        texts: texts2,
+        isLoading: isLoading2,
+        onPick: () => pickImages(false),
+        onClear: () => clearAll(false),
+        isFirstSide: false,
+      ),
+      // زر المقارنة + الجدول
+      Column(
+        children: [
+          ElevatedButton(
+            onPressed: compareTexts,
+            child: const Text("مقارنة النصوص"),
           ),
-        
-          ],
-        ),
-      )
-    ;
-  }
-}
+          const SizedBox(height: 10),
+          if (showComparison) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () =>
+                        copyTableToClipboard(unique1, matched, unique2),
+                    child: const Text("📋 نسخ"),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 400,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: Table(
+                  border: TableBorder.all(),
+                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                  columnWidths: const {
+                    0: FixedColumnWidth(100),
+                    1: FixedColumnWidth(100),
+                    2: FixedColumnWidth(100),
+                  },
+                  children: [
+                    const TableRow(
+                      decoration: BoxDecoration(color: Colors.grey),
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('غير متكرر في الطرف الأول',
+                              textAlign: TextAlign.center),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('✅ متطابق (بدون تكرار)',
+                              textAlign: TextAlign.center),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('غير متكرر في الطرف الثاني',
+                              textAlign: TextAlign.center),
+                        ),
+                      ],
+                    ),
+                    ..._buildComparisonRowsWithoutDuplicates(),
+                  ],
+                ),
+              ),
+            ),
+          ]
+        ],
+      ),
+    ],
+  );
+
+  return Scaffold(
+    appBar: AppBar(title: const Text("تحليل نصوص - طرفين")),
+    body: isWide
+        ? mainContent
+        : SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 1100),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: mainContent,
+                ),
+              ),
+            ),
+          ),
+  );
+}}
