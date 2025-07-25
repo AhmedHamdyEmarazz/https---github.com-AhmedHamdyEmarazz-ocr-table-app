@@ -1,4 +1,5 @@
-import 'dart:html' as html; import 'package:flutter/material.dart'; import 'package:js/js.dart'; import 'package:js/js_util.dart'; import 'package:string_similarity/string_similarity.dart'; import 'dart:async';
+import 'dart:html' as html; import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; import 'package:js/js.dart'; import 'package:js/js_util.dart'; import 'package:string_similarity/string_similarity.dart'; import 'dart:async';
 
 
 class ManualTextCompare extends StatefulWidget {
@@ -17,8 +18,10 @@ class _ManualTextCompareState extends State<ManualTextCompare> with AutomaticKee
   List matched = [], unmatched1 = [], unmatched2 = [];
 
   List filteredMatched = [], filteredUnmatched1 = [], filteredUnmatched2 = [];
-
+//ValueNotifier<List<String>> unmatchedRight = ValueNotifier([]);
   String searchMatched = '', searchUnmatched1 = '', searchUnmatched2 = '';
+List<String> unmatchedRightLines = [];
+List<String> unmatchedRight = [];
 
   void compareManualText() {
   rows1 = _extract(text1);
@@ -47,6 +50,121 @@ class _ManualTextCompareState extends State<ManualTextCompare> with AutomaticKee
   setState(() {});
 }
 
+void compareTeOnly() {
+final teGig = RegExp(r'\bTE(?!G)[^\s]*', caseSensitive: true);
+  final regex = RegExp(r'\d+'); // أو استخدم \d+(\.\d+)? للأرقام العشرية
+
+
+bool isGig(String line) => teGig.hasMatch(line.trim());
+  Map<String, String> extractTegMap(String text) {
+   
+
+
+    final lines = text.split('\n');
+
+    final map = <String, String>{};
+ final mapx = <String, String>{};
+    for (var line in lines) {
+      final match = teGig.firstMatch(line);
+
+
+
+      if (match != null) {
+// final matches = regex.allMatches(match.toString());
+
+// // تحويل الأرقام إلى List مع لصق "te" في بدايتها
+// final result = matches.map((m) => 'te${m.group(0)}').toList();
+//        // final teg = match.group(0)!;
+       final teg = match.group(0)!;
+        map[teg] = line.trim(); // احتفظ بالنص الكامل
+
+      }
+    }
+
+    return map;
+  }
+
+
+  final map1 = extractTegMap(text1);
+  final map2 = extractTegMap(text2);
+
+  final teg1 = map1.keys.toSet();
+  final teg2 = map2.keys.toSet();
+
+  matched.clear();
+  unmatched1.clear();
+  unmatched2.clear();
+
+  for (final t in teg1) {
+    if (teg2.contains(t)) {
+      matched.add(map1[t]!); // السطر الكامل من النص الأول
+    } else {
+      unmatched1.add(map1[t]!);
+    }
+  }
+
+  for (final t in teg2) {
+    if (!teg1.contains(t)) {
+      unmatched2.add(map2[t]!); // السطر الكامل من النص الثاني
+    }
+  }
+
+  filterSearchResults();
+  setState(() {});
+}
+List<String> extractTeCodesFromTable(String tableText, {String delimiter = '\t'}) {
+  final List<String> result = [];
+
+  // تقسيم النص إلى صفوف
+  final rows = tableText.split('\n');
+
+  for (var row in rows) {
+    final columns = row.split(delimiter);
+
+    for (var col in columns) {
+      final match = RegExp(r'TE\d+').firstMatch(col);
+      if (match != null) {
+        result.add(match.group(0)!); // نضيف TE مع الرقم
+      }
+    }
+  }
+
+  return result;
+}
+
+void extractCleanTeLinesToRight(String text) {
+  final lines = text.split('\n');
+  final tePattern = RegExp(r'\bTE[^\s\t]*', caseSensitive: true); // التقاط TE وما يليها حتى الفاصل
+
+  List<String> result = [];
+
+  for (var line in lines) {
+    final matches = tePattern.allMatches(line);
+    String cleanedLine = line;
+    print('line');
+
+print(line);
+    for (final match in matches) {
+      final rawTe = match.group(0)!;
+      final digits = RegExp(r'\d+').allMatches(rawTe).map((m) => m.group(0)).join();
+      if (digits.isNotEmpty) {
+        final cleanedTe = 'TE$digits';
+        cleanedLine = '${cleanedLine.replaceFirst(rawTe, cleanedTe)}   $cleanedTe'; 
+      }
+    }
+
+    if (cleanedLine.contains(RegExp(r'TE\d+'))) {
+      result.add(cleanedLine);
+    }
+  }
+
+  setState(() {
+    unmatchedRight = result;
+  });
+    print('unmatchedRight');
+
+  print(unmatchedRight);
+}
 void compareTegOnly() {
 final teGig = RegExp(r'\b(TEG|TE)\d+\b', caseSensitive: false);
 
@@ -465,6 +583,17 @@ void copyAsExcelTable(List<dynamic> list1, List<dynamic> list2, List<dynamic> li
   onPressed: compareTegOnly,
   child: const Text("قارن مقاطع TEG فقط"),
 ),
+  ElevatedButton(
+  onPressed: compareTeOnly,
+  child: const Text("قارن مقاطع TE فقط"),
+),
+ ElevatedButton(
+  onPressed:(){
+    print(text2);
+    extractCleanTeLinesToRight(text2);} ,
+  child: const Text(" arrange TE "),
+),
+
               ],
             ),
             const SizedBox(height: 10),
@@ -502,6 +631,21 @@ const SizedBox(height: 10),
                 ],
               ),
             ),
+             IconButton(
+          icon: const Icon(Icons.copy),
+          tooltip: 'نسخ النتائج',
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: unmatchedRight.join('\n')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("تم نسخ النتائج إلى الحافظة")),
+                   );
+          },
+        ),
+               SelectableText(unmatchedRight.join('\n')), // عرض النتائج قابلة للنسخ يدوياً
+       
+      
+
+
           ],
         ),
       ),
