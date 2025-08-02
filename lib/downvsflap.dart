@@ -473,6 +473,49 @@ Widget build(BuildContext context) {
           Row(
             children: [
               ElevatedButton(
+  onPressed: () {
+    showDialog(
+      context: context,
+      builder: (context) {
+        TextEditingController textController = TextEditingController();
+
+        return AlertDialog(
+          title: const Text("إدخال نص يدوي"),
+          content: TextField(
+            controller: textController,
+            maxLines: 10,
+            decoration: const InputDecoration(
+              hintText: "أدخل النص هنا...",
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("إلغاء"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  images.add("manual_input");
+                  extractedTexts.add(
+                    textController.text.trim().isEmpty
+                        ? "[لا يوجد نص]"
+                        : textController.text.trim(),
+                  );
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text("تحليل"),
+            ),
+          ],
+        );
+      },
+    );
+  },
+  child: const Text("إدخال نص يدوي"),
+),
+              ElevatedButton(
                 onPressed: pickImages,
                 child: const Text("اختيار صور"),
               ),
@@ -543,7 +586,14 @@ const SizedBox(height: 10),
         ),
         Stack(
           children: [
-            Image.network(images[index]),
+            // Image.network(images[index]),
+            images[index] == "manual_input"
+    ? Container(
+        height: 100,
+        color: Colors.grey[200],
+        child: const Center(child: Text("تم إدخال النص يدويًا")),
+      )
+    : Image.network(images[index]),
             Positioned(
               top: 4,
               right: 4,

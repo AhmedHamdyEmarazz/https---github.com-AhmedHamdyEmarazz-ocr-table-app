@@ -3,6 +3,7 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:js/js.dart';
 import 'package:js/js_util.dart';
+import 'package:ocr_table_app/exceltotable.dart';
 import 'package:string_similarity/string_similarity.dart';
 import 'dart:async';
 
@@ -33,10 +34,11 @@ class MainApp extends StatefulWidget {
 class _MainAppState extends State<MainApp> {
   int selectedIndex = 0;
 
-  final List<Widget> pages = const [
-    ManualTextCompare(),
-      DownVsFlap(), 
-      ImageTextExtractor(),
+  final List<Widget> pages = [
+    const ManualTextCompare(),
+      const DownVsFlap(), 
+      const ImageTextExtractor(),
+       SimpleTextParse(),
   ];
 
   @override
@@ -85,6 +87,12 @@ class _MainAppState extends State<MainApp> {
         icon: Icon(Icons.image, size: 30, color: Colors.white),
         activeIcon: Icon(Icons.image, size: 30, color: Colors.amberAccent),
         label: 'تحليل صور',
+      ),
+       BottomNavigationBarItem(
+        //icon: Icon(Icons.add, size: 30),
+        icon: Icon(Icons.paste, size: 30, color: Colors.white),
+        activeIcon: Icon(Icons.paste, size: 30, color: Colors.amberAccent),
+        label: 'physical',
       ),
     ],
   ),

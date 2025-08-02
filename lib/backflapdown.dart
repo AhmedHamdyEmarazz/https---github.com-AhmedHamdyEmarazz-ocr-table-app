@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:js/js.dart';
 import 'package:js/js_util.dart';
 import 'package:flutter/services.dart';
-
+import 'dart:js_util';
 
 @JS('Tesseract')
 external TesseractJS get tesseract;
+
+@JS('readImageFromClipboard')
+external dynamic _readImageFromClipboard();
 
 @JS()
 @anonymous
@@ -29,8 +32,12 @@ class _DownVsFlapState extends State<DownVsFlap> with AutomaticKeepAliveClientMi
   List<String> images = [];
   List<String> extractedTexts = [];
   bool isLoading = false;
-
 String _extractCore(String line) {
+  line = line.replaceAll('CAL_', 'CAI_');
+   line = line.replaceAllMapped(RegExp(r'CA[Ll](\d)'), (match) {
+    line = line.replaceAll('CAL_', 'CAI_');
+    return 'CAI_${match.group(1)}';
+  });
   final start = line.indexOf('=');
   if (start == -1) return '...';
 
@@ -73,18 +80,76 @@ String _extractCore(String line) {
 
 //   return '...';
 // }
+
+// String normalizeLine(String line) {
+//  fixCALtoCAI(line);
+//   print('xxxx');
+//   return line
+//       .replaceAll('S', '5')
+//       .replaceAll('s', '5')
+//       .replaceAll('O', '0')
+//       .replaceAll('o', '0')
+//       .replaceAll('I', '1')
+//       .replaceAll('l', '1')
+//             .replaceAll('b', '6')
+//       .replaceAll('g', '9')
+
+//             .replaceAll('B', '8');
+            
+
+// }
+// String fixOCR_I_to_L(String text) {
+//   return text.replaceAllMapped(RegExp(r'\bCA[Ll](\d)', caseSensitive: false), (match) {
+//     return 'CAI${match.group(1)}';
+//   });
+// }
+ String fixCALtoCAI(String text) {
+  print('xxxx');
+  return text.replaceAllMapped(RegExp(r'\bCA[Ll](\d)', caseSensitive: false), (match) {
+    return 'CAI${match.group(1)}';
+  });
+}
+// String? _extractGigNum(String line) {
+//   final pattern = RegExp(r'\b(TEG?)[^\d]*(\d+)[^p]*port', caseSensitive: false);
+//   final match = pattern.firstMatch(line);
+
+//   if (match != null) {
+//     final prefix = match.group(1)!.toUpperCase(); // TE أو TEG
+//     final number = match.group(2)!;               // الرقم بعده
+//     return '$prefix$number';
+//   }
+
+//   return null; // لا يوجد TEG..number..port
+// }
 String? _extractGigNum(String line) {
-  final pattern = RegExp(r'(TEG?\D*?)(\d+)(?=\s*port)', caseSensitive: false);
+  // final pattern = RegExp(r'\b(TEG?)[^\dA-Z]*(\w+)[^p]*port', caseSensitive: false);
+  final pattern = RegExp(r'(TEG?)[^\dA-Z]*(\w+)[^p]*port', caseSensitive: false);
   final match = pattern.firstMatch(line);
 
   if (match != null) {
-    final prefix = match.group(1)!.toUpperCase().contains('TEG') ? 'TEG' : 'TE';
-    final number = match.group(2)!;
-    return '$prefix$number';
+    final prefix = match.group(1)!.toUpperCase();
+    String rawPart = match.group(2)!;
+
+    // ✅ فقط إذا كانت بعد TEG، نقوم بالتصحيح على rawPart
+    String corrected = rawPart
+        .replaceAll(RegExp(r'[sS]'), '5')
+         .replaceAll(RegExp(r'[iIlL]'), '1')
+        .replaceAll(RegExp(r'[b]'), '6')
+        .replaceAll(RegExp(r'[g]'), '9')
+        .replaceAll(RegExp(r'[B]'), '8')
+        .replaceAll(RegExp(r'[oO]'), '0');
+
+    // أزل أي رموز إضافية
+    corrected = corrected.replaceAll(RegExp(r'[^\d]'), '');
+
+    if (corrected.isEmpty) return null;
+
+    return '$prefix$corrected';
   }
 
-  return null; // لا يوجد TE..port => حذف السطر
+  return null;
 }
+
 void copyTableToClipboard(List<TableRow> rows, String title) {
   final buffer = StringBuffer();
   for (final row in rows) { // نتخطى العنوان
@@ -127,9 +192,13 @@ void copyTableWithoutDate(List<TableRow> rows, String title) {
   );
 }
 String removePortSuffix(String text) {
+  // لا تحذف إذا احتوى النص على "portsaid"
+  if (text.toLowerCase().contains('portsaid')) return text;
+
   final pattern = RegExp(r'[-_]port', caseSensitive: false);
   final match = pattern.firstMatch(text);
   if (match == null) return text;
+
   return text.substring(0, match.start).trim();
 }
 
@@ -159,6 +228,7 @@ String removePortSuffix(String text) {
         final index = images.length - 1;
 
         processImage(imageUrl, index);
+        
       }
 
       setState(() => isLoading = false);
@@ -174,7 +244,7 @@ String removePortSuffix(String text) {
     final ctx = canvas.context2D;
     
     // تكبير الصورة للحصول على دقة أعلى
-    final scale = 2;  // يمكنك تعديل هذه القيمة
+    final scale = 3;  // يمكنك تعديل هذه القيمة
     canvas.width = image.width! * scale;
     canvas.height = image.height! * scale;
     ctx.scale(scale.toDouble(), scale.toDouble());
@@ -256,6 +326,25 @@ String removePortSuffix(String text) {
   return '...';
 }
 
+
+Future<void> pasteImageFromClipboard() async {
+  setState(() => isLoading = true);
+
+  final jsResult = await promiseToFuture(_readImageFromClipboard());
+  if (jsResult != null && jsResult is String && jsResult.startsWith('data:image/')) {
+    final imageUrl = jsResult;
+    images.add(imageUrl);
+    extractedTexts.add("جاري التحليل...");
+    final idx = images.length - 1;
+    await processImage(imageUrl, idx);
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("لم يتم العثور على صورة في الحافظة")),
+    );
+  }
+
+  setState(() => isLoading = false);
+}
   void removeImage(int index) {
     setState(() {
       images.removeAt(index);
@@ -271,15 +360,21 @@ String removePortSuffix(String text) {
     });
   }
  List<TableRow> _buildTableRowsBySuffix(List<String> suffixes) {
+  print('تشغيل جدول بـ suffixes: $suffixes');
+  
   final List<TableRow> rows = [];
   final Set<String> seenGigNums = {}; // لتخزين قيم Gig المكررة
 
   for (final text in extractedTexts) {
     final lines = text.split('\n');
+    
     for (final line in lines) {
+       
+
       final lowerLine = line.trim().toLowerCase();
       if (suffixes.any((suffix) => lowerLine.contains(suffix))) {
         final aggregator = _extractAggregator(line);
+        print(aggregator);
         if (aggregator == 'none') continue;
 
       //   final gig = _extractGigNum(line);
@@ -300,10 +395,14 @@ final aggLower = aggregator.toLowerCase();
 if (aggLower.contains('pe')) {
   finalAgg = core;
   finalCore = aggregator;
-} else if (aggLower.contains('obr') || aggLower.contains('oct')) {
+} else if (aggLower.contains('obr') || aggLower.contains('oct') || aggLower.contains('hos') || aggLower.contains('obo') || aggLower.contains('saw') || aggLower.contains('awa') || aggLower.contains('smh') || aggLower.contains('smo') ) {
   finalAgg = core;
   finalCore = aggregator;
 }
+        print(aggregator);
+        print(finalCore);
+        print(finalAgg);
+        print(gig);
 
 rows.add(
   TableRow(
@@ -312,7 +411,7 @@ rows.add(
   Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(finalAgg)),
   Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(gig)),
   Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(
-    suffixes.firstWhere((suffix) => lowerLine.endsWith(suffix), orElse: () => ''),
+    suffixes.firstWhere((suffix) => lowerLine.contains(suffix), orElse: () => ''),
   )),
   Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(
     extractDateAfterSuffix(line, suffixes),
@@ -328,6 +427,12 @@ rows.add(
 }
 
 String _extractAggregator(String line) {
+   line = line.replaceAll('CAL_', 'CAI_');
+   line = line.replaceAllMapped(RegExp(r'CA[Ll](\d)'), (match) {
+    line = line.replaceAll('CAL_', 'CAI_');
+    return 'CAI_${match.group(1)}';
+  });
+
   final lowerLine = line.toLowerCase();
   final index = lowerLine.indexOf('physical');
 
@@ -368,9 +473,56 @@ Widget build(BuildContext context) {
           Row(
             children: [
               ElevatedButton(
+  onPressed: () {
+    showDialog(
+      context: context,
+      builder: (context) {
+        TextEditingController textController = TextEditingController();
+
+        return AlertDialog(
+          title: const Text("إدخال نص يدوي"),
+          content: TextField(
+            controller: textController,
+            maxLines: 10,
+            decoration: const InputDecoration(
+              hintText: "أدخل النص هنا...",
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("إلغاء"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  images.add("manual_input");
+                  extractedTexts.add(
+                    textController.text.trim().isEmpty
+                        ? "[لا يوجد نص]"
+                        : textController.text.trim(),
+                  );
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text("تحليل"),
+            ),
+          ],
+        );
+      },
+    );
+  },
+  child: const Text("إدخال نص يدوي"),
+),
+              ElevatedButton(
                 onPressed: pickImages,
                 child: const Text("اختيار صور"),
               ),
+              ElevatedButton(
+  onPressed: pasteImageFromClipboard,
+  child: const Text("لصق صورة"),
+),
               const SizedBox(width: 10),
               ElevatedButton(
                 onPressed: clearAll,
@@ -379,7 +531,28 @@ Widget build(BuildContext context) {
               ),
             ],
           ),
+          // ✅ جدول الرأس الثابت فوق الصور
+Table(
+  border: TableBorder.all(),
+  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+  children: const [
+    TableRow(
+      decoration: BoxDecoration(color: Color(0xFFE0E0E0)),
+      children: [
+        Padding(padding: EdgeInsets.all(6), child: Text("Site name", textAlign: TextAlign.center)),
+        Padding(padding: EdgeInsets.all(6), child: Text("Additional text", textAlign: TextAlign.center)),
+        Padding(padding: EdgeInsets.all(6), child: Text("Object name", textAlign: TextAlign.center)),
+        Padding(padding: EdgeInsets.all(6), child: Text("Severity", textAlign: TextAlign.center)),
+        Padding(padding: EdgeInsets.all(6), child: Text("Last time detected", textAlign: TextAlign.center)),
+        Padding(padding: EdgeInsets.all(6), child: Text("Object type", textAlign: TextAlign.center)),
+      ],
+    ),
+  ],
+),
+const SizedBox(height: 10),
           const SizedBox(height: 10),
+     //  if (isLoading)   Text("عدد النصوص: ${extractedTexts.length}"),
+
           if (isLoading) const CircularProgressIndicator(),
           const SizedBox(height: 10),
          if (images.isNotEmpty)
@@ -387,37 +560,61 @@ Widget build(BuildContext context) {
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
     itemCount: images.length,
-    itemBuilder: (context, index) {
-      return Card(
-       
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            Image.network(images[index]),
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.red),
-                                onPressed: () => removeImage(index),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: SelectableText(
-                            extractedTexts[index],
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+   itemBuilder: (context, index) {
+  return Card(
+    margin: const EdgeInsets.symmetric(vertical: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ✅ جدول ثابت فوق الصورة
+        Table(
+          border: TableBorder.all(),
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: const [
+            TableRow(
+              decoration: BoxDecoration(color: Color(0xFFE0E0E0)),
+              children: [
+                Padding(padding: EdgeInsets.all(6), child: Text("Site name", textAlign: TextAlign.center)),
+                Padding(padding: EdgeInsets.all(6), child: Text("Additional text", textAlign: TextAlign.center)),
+                Padding(padding: EdgeInsets.all(6), child: Text("Object name", textAlign: TextAlign.center)),
+                Padding(padding: EdgeInsets.all(6), child: Text("Severity", textAlign: TextAlign.center)),
+                Padding(padding: EdgeInsets.all(6), child: Text("Last time detected", textAlign: TextAlign.center)),
+                Padding(padding: EdgeInsets.all(6), child: Text("Object type", textAlign: TextAlign.center)),
+              ],
+            ),
+          ],
+        ),
+        Stack(
+          children: [
+            // Image.network(images[index]),
+            images[index] == "manual_input"
+    ? Container(
+        height: 100,
+        color: Colors.grey[200],
+        child: const Center(child: Text("تم إدخال النص يدويًا")),
+      )
+    : Image.network(images[index]),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.red),
+                onPressed: () => removeImage(index),
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SelectableText(
+            extractedTexts[index],
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+      ],
+    ),
+  );
+},
               ),
             
           const SizedBox(height: 10),
