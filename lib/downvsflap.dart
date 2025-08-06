@@ -404,19 +404,24 @@ if (aggLower.contains('pe')) {
         print(finalAgg);
         print(gig);
 
+final date = extractDateAfterSuffix(line, suffixes);
+
+// ✅ استثناء الصف إذا كان يحتوي التاريخ على كلمة "description"
+if (date.toLowerCase().contains('description')) continue;
+
 rows.add(
   TableRow(
-   children: [
-  Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(finalCore)),
-  Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(finalAgg)),
-  Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(gig)),
-  Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(
-    suffixes.firstWhere((suffix) => lowerLine.contains(suffix), orElse: () => ''),
-  )),
-  Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(
-    extractDateAfterSuffix(line, suffixes),
-  )),
-],
+    children: [
+      Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(finalCore)),
+      Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(finalAgg)),
+      Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(gig)),
+      Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SelectableText(
+            suffixes.firstWhere((suffix) => lowerLine.contains(suffix), orElse: () => ''),
+          )),
+      Padding(padding: const EdgeInsets.all(8.0), child: SelectableText(date)),
+    ],
   ),
 );
       }
